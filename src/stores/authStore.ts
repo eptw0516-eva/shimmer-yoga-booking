@@ -43,7 +43,16 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = { id: result.data.user.id, email: result.data.user.email }
       await loadProfile(result.data.user.id)
     }
+
     return result
+  }
+
+  async function resetPassword(email: string) {
+    if (!supabase) return { error: new Error('目前為展示模式，請先設定 Supabase。') }
+    if (!email.trim()) return { error: new Error('請先輸入 Email。') }
+    return supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/login?reset=1`,
+    })
   }
 
   async function signUp(payload: { email: string; password: string; fullName: string; birthDate: string; phone: string; lineUserId: string }) {
@@ -73,5 +82,5 @@ export const useAuthStore = defineStore('auth', () => {
     profile.value = null
   }
 
-  return { user, profile, loading, initialized, isAuthenticated, isAdmin, isInstructor, load, loadProfile, signIn, signUp, signInWithGoogle, signOut }
+  return { user, profile, loading, initialized, isAuthenticated, isAdmin, isInstructor, load, loadProfile, signIn, signUp, resetPassword, signInWithGoogle, signOut }
 })
