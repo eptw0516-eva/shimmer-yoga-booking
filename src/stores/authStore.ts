@@ -55,6 +55,11 @@ export const useAuthStore = defineStore('auth', () => {
     })
   }
 
+  async function updatePassword(password: string) {
+    if (!supabase) return { error: new Error('目前為展示模式，請先設定 Supabase。') }
+    return supabase.auth.updateUser({ password })
+  }
+
   async function signUp(payload: { email: string; password: string; fullName: string; birthDate: string; phone: string; lineUserId: string }) {
     if (!supabase) return { error: new Error('目前為展示模式，請先設定 Supabase。') }
     loading.value = true
@@ -82,5 +87,5 @@ export const useAuthStore = defineStore('auth', () => {
     profile.value = null
   }
 
-  return { user, profile, loading, initialized, isAuthenticated, isAdmin, isInstructor, load, loadProfile, signIn, signUp, resetPassword, signInWithGoogle, signOut }
+  return { user, profile, loading, initialized, isAuthenticated, isAdmin, isInstructor, load, loadProfile, signIn, signUp, resetPassword, updatePassword, signInWithGoogle, signOut }
 })

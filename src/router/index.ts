@@ -33,7 +33,7 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
   if (!auth.initialized) await auth.load()
-  if (to.path === '/login' || to.path === '/register') return auth.isAuthenticated ? '/' : true
+  if (to.path === '/login' || to.path === '/register') return auth.isAuthenticated && to.query.reset !== '1' ? '/' : true
   if (to.meta.requiresAuth && !auth.isAuthenticated) return `/login?redirect=${encodeURIComponent(to.fullPath)}`
   if (to.meta.adminOnly && !auth.isAdmin) return '/'
   if (to.meta.staff && !auth.isInstructor) return '/'
