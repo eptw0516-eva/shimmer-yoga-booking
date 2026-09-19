@@ -55,6 +55,10 @@ export const useAuthStore = defineStore('auth', () => {
       options: { data: { full_name: payload.fullName, birth_date: payload.birthDate, phone: payload.phone, line_user_id: payload.lineUserId } },
     })
     loading.value = false
+    if (!result.error && result.data.user && result.data.session) {
+      user.value = { id: result.data.user.id, email: result.data.user.email }
+      await loadProfile(result.data.user.id)
+    }
     return result
   }
 

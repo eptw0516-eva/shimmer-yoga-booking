@@ -97,6 +97,19 @@ export const useBookingStore = defineStore('booking', () => {
     notify('購課申請已送出，管理員核款後會更新票券。')
     return true
   }
+  async function createClass(input: Omit<YogaClass, 'id' | 'booked_count'>) {
+    const auth = useAuthStore()
+    if (!auth.isAdmin) { notify('只有管理員可以新增課程。', 'error'); return false }
+    if (supabase) {
+      const { data, error } = await supabase.from('classes').insert({ ...input, booked_count: 0 } as never).select().single()
+      if (error) { notify(error.message, 'error'); return false }
+      if (data) classes.value.push(data as YogaClass)
+    } else {
+      classes.value.push({ ...input, id: `class-${Date.now()}`, booked_count: 0 })
+    }
+    notify(`已新增課程「${input.title}」。`)
+    return true
+  }
   async function approveOrder(order: PurchaseOrder) {
     if (supabase) {
       const { data, error } = await supabase.rpc('approve_purchase_order', { p_order_id: order.id } as never) as unknown as { data: UserPackage | null; error: { message: string } | null }
@@ -176,5 +189,5 @@ export const useBookingStore = defineStore('booking', () => {
     return { booking, class: booking.class }
   }
   function clearToast() { toast.value = null }
-  return { classes, bookings, packages, orders, pendingOrders, loading, toast, availableCredits, activeBookings, pastBookings, waitlistedClassIds, attendance, loadSchedule, bookClass, joinWaitlist, cancelBooking, checkInBooking, markAttendance, submitPurchase, approveOrder, sharePackage, notify, clearToast }
+  return { classes, bookings, packages, orders, pendingOrders, loading, toast, availableCredits, activeBookings, pastBookings, waitlistedClassIds, attendance, loadSchedule, bookClass, joinWaitlist, cancelBooking, checkInBooking, markAttendance, submitPurchase, createClass, approveOrder, sharePackage, notify, clearToast }
 })
