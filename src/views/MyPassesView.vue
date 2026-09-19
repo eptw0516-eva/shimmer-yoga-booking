@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ArrowUpRight, CalendarDays, ChevronRight, Clock3, Ticket, WalletCards, Users, X } from 'lucide-vue-next'
 import { useBookingStore } from '../stores/bookingStore'
 const store = useBookingStore()
+onMounted(() => void store.loadUserData())
 const formatDate = (value: string) => new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric', weekday: 'short' }).format(new Date(value))
 const formatTime = (value: string) => new Intl.DateTimeFormat('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(value))
 const upcoming = computed(() => store.activeBookings.filter((booking) => booking.class))

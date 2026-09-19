@@ -24,8 +24,8 @@ export const purchasePlans: PurchasePlan[] = [
 
 export const useBookingStore = defineStore('booking', () => {
   const classes = ref<YogaClass[]>([...demoClasses])
-  const bookings = ref<Booking[]>([{ id: 'booking-demo', user_id: 'demo-user', class_id: 'class-3', status: 'confirmed', created_at: today.toISOString(), class: demoClasses[2] }])
-  const packages = ref<UserPackage[]>([{ id: 'package-demo', user_id: 'demo-user', total_credits: 20, remaining_credits: 8, valid_until: '2026-12-31', status: 'active', created_at: '2026-01-01', plan_name: '晨光 20 堂方案', plan_type: 'credits', shared_with_phones: [] }])
+  const bookings = ref<Booking[]>([])
+  const packages = ref<UserPackage[]>([])
   const orders = ref<PurchaseOrder[]>([])
   const loading = ref(false)
   const toast = ref<{ message: string; type: 'success' | 'error' } | null>(null)
@@ -41,6 +41,23 @@ export const useBookingStore = defineStore('booking', () => {
     loading.value = true
     const { data, error } = await supabase.from('classes').select('*').order('start_time')
     if (!error && data) classes.value = data
+    else if (error) notify(`課表載入失敗：${error.message}`, 'error')
+    loading.value = false
+  }
+  async function loadUserData() {
+    const auth = useAuthStore()
+    if (!supabase || !auth.user) return
+    loading.value = true
+    const [bookingResult, packageResult, orderResult] = await Promise.all([
+      supabase.from('bookings').select('*, class:classes(*)').eq('user_id', auth.user.id).order('created_at', { ascending: false }),
+      supabase.from('user_packages').select('*').eq('user_id', auth.user.id).order('valid_until', { ascending: true }),
+      supabase.from('purchase_orders').select('*').eq('user_id', auth.user.id).order('created_at', { ascending: false }),
+    ])
+    if (bookingResult.error) notify(`預約資料載入失敗：${bookingResult.error.message}`, 'error')
+    else bookings.value = (bookingResult.data ?? []) as Booking[]
+    if (packageResult.error) notify(`票券資料載入失敗：${packageResult.error.message}`, 'error')
+    else packages.value = (packageResult.data ?? []) as UserPackage[]
+    if (!orderResult.error) orders.value = (orderResult.data ?? []) as PurchaseOrder[]
     loading.value = false
   }
   async function bookClass(item: YogaClass) {
@@ -85,7 +102,7 @@ export const useBookingStore = defineStore('booking', () => {
       return false
     }
     const order: PurchaseOrder = {
-      id: `order-${Date.now()}`, user_id: auth.user.id, plan_id: plan.id, plan_name: plan.name,
+      id: crypto.randomUUID(), user_id: auth.user.id, plan_id: plan.id, plan_name: plan.name,
       amount: plan.price, payment_method: paymentMethod, transfer_last_five: transferLastFive,
       status: 'pending_review', created_at: new Date().toISOString(),
     }
@@ -191,5 +208,5 @@ export const useBookingStore = defineStore('booking', () => {
     return { booking, class: booking.class }
   }
   function clearToast() { toast.value = null }
-  return { classes, bookings, packages, orders, pendingOrders, loading, toast, availableCredits, activeBookings, pastBookings, waitlistedClassIds, attendance, loadSchedule, bookClass, joinWaitlist, cancelBooking, checkInBooking, markAttendance, submitPurchase, createClass, approveOrder, sharePackage, notify, clearToast }
+  return { classes, bookings, packages, orders, pendingOrders, loading, toast, availableCredits, activeBookings, pastBookings, waitlistedClassIds, attendance, loadSchedule, loadUserData, bookClass, joinWaitlist, cancelBooking, checkInBooking, markAttendance, submitPurchase, createClass, approveOrder, sharePackage, notify, clearToast }
 })

@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { Check, Clock3, Landmark, ReceiptText, UserRound } from 'lucide-vue-next'
 import { useBookingStore } from '../stores/bookingStore'
 const store = useBookingStore()
+onMounted(() => void store.loadUserData())
 const formatDate = (value: string) => new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value))
 const formatPrice = (value: number) => new Intl.NumberFormat('zh-TW').format(value)
 </script>

@@ -25,7 +25,7 @@ const isClosed = (item: YogaClass) => new Date(item.start_time).getTime() - Date
 const isWaitlisted = (item: YogaClass) => store.waitlistedClassIds.includes(item.id)
 async function confirmBooking() { if (pending.value) await store.bookClass(pending.value); pending.value = null }
 function requireLogin() { if (!auth.isAuthenticated) router.push(`/login?redirect=${encodeURIComponent('/')}`) }
-onMounted(() => store.loadSchedule())
+onMounted(async () => { await store.loadSchedule(); if (auth.isAuthenticated) await store.loadUserData() })
 </script>
 
 <template>

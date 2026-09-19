@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { CalendarDays, Clock3, MapPin } from 'lucide-vue-next'
 import { useBookingStore } from '../stores/bookingStore'
 import type { Booking } from '../types/database'
 
 const store = useBookingStore()
+onMounted(() => void store.loadUserData())
 const tab = ref<'upcoming' | 'past'>('upcoming')
 const now = () => Date.now()
 const upcoming = computed(() => store.bookings.filter((item) => item.class && ['confirmed'].includes(item.status) && new Date(item.class.start_time).getTime() >= now()))
@@ -36,6 +37,6 @@ async function cancel(booking: Booking) {
       </article>
     </div>
     <div v-else class="rounded-3xl border border-dashed border-sand py-12 text-center text-sm text-stone-400">{{ tab === 'upcoming' ? '目前沒有即將到來的預約。' : '目前沒有歷史紀錄。' }}</div>
-    <div v-if="store.toast" class="fixed left-1/2 top-5 z-40 w-[calc(100%-2rem)] max-w-[398px] -translate-x-1/2 rounded-2xl bg-ink px-4 py-3 text-sm text-white shadow-lg">{{ store.toast.message }}</div>
+    <div v-if="store.toast" class="fixed left-1/2 top-5 z-[60] w-[calc(100%-2rem)] max-w-[398px] -translate-x-1/2 rounded-2xl bg-ink px-4 py-3 text-sm text-white shadow-lg">{{ store.toast.message }}</div>
   </div>
 </template>

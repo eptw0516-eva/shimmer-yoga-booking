@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { ArrowLeft, Banknote, Check, ChevronRight, Landmark, ShoppingBag } from 'lucide-vue-next'
 import { purchasePlans, useBookingStore } from '../stores/bookingStore'
 import type { PaymentMethod, PurchasePlan } from '../types/database'
 
 const store = useBookingStore()
+onMounted(() => void store.loadUserData())
 const selected = ref<PurchasePlan | null>(null)
 const paymentMethod = ref<PaymentMethod>('bank_transfer')
 const transferLastFive = ref('')
@@ -32,8 +33,8 @@ async function submit() {
         <div class="mt-4 flex items-center justify-between border-t border-sand pt-3"><strong class="text-lg text-sage">NT$ {{ formatPrice(plan.price) }}</strong><button class="rounded-xl bg-clay px-4 py-2 text-xs font-semibold text-white" @click="selected = plan">申請購買 <ChevronRight :size="14" class="ml-1 inline" /></button></div>
       </article>
     </div>
-    <div v-if="selected" class="fixed inset-0 z-30 flex items-end justify-center bg-ink/30 p-4 sm:items-center">
-      <section class="w-full max-w-[398px] rounded-[28px] bg-cream p-5 shadow-xl">
+    <div v-if="selected" class="fixed inset-0 z-50 flex items-end justify-center bg-ink/30 p-4 sm:items-center">
+      <section class="max-h-[90vh] w-full max-w-[398px] overflow-y-auto rounded-[28px] bg-cream p-5 pb-8 shadow-xl">
         <div class="mb-4 flex items-center justify-between"><div><p class="text-xs text-clay">PURCHASE REQUEST</p><h2 class="font-display text-xl">{{ selected.name }}</h2></div><button class="text-stone-400" @click="selected = null"><ArrowLeft :size="19" /></button></div>
         <div class="mb-4 rounded-2xl bg-white p-4 text-sm"><div class="flex justify-between"><span class="text-stone-500">應付金額</span><strong class="text-sage">NT$ {{ formatPrice(selected.price) }}</strong></div><p class="mt-2 text-xs text-stone-400">請選擇付款方式，送出後等待管理員核款。</p></div>
         <div class="mb-4 grid grid-cols-2 gap-2"><button class="rounded-xl border px-3 py-3 text-xs" :class="paymentMethod === 'bank_transfer' ? 'border-sage bg-[#efeff7] text-sage' : 'border-sand bg-white text-stone-500'" @click="paymentMethod = 'bank_transfer'"><Landmark :size="16" class="mb-1 inline" /><br />銀行匯款</button><button class="rounded-xl border px-3 py-3 text-xs" :class="paymentMethod === 'cash' ? 'border-sage bg-[#efeff7] text-sage' : 'border-sand bg-white text-stone-500'" @click="paymentMethod = 'cash'"><Banknote :size="16" class="mb-1 inline" /><br />教室現金付款</button></div>
