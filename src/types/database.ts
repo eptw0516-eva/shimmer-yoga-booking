@@ -11,6 +11,9 @@ export interface Profile {
   role: UserRole
   line_user_id: string | null
   phone: string | null
+  birth_date?: string | null
+  is_instructor?: boolean
+  is_active?: boolean
   full_name: string
   avatar_url?: string | null
   created_at: string

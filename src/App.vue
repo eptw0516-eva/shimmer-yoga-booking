@@ -2,9 +2,11 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { CalendarDays, ClipboardCheck, Leaf, ShieldCheck, ShoppingBag, UserRound } from 'lucide-vue-next'
+import { useAuthStore } from './stores/authStore'
 
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 const navItems = [
   { to: '/', label: '課表', icon: CalendarDays },
   { to: '/my-bookings', label: '我的預約', icon: UserRound },
@@ -23,7 +25,8 @@ const pageTitle = computed(() => route.meta.title ?? '微光空中瑜珈')
           <span class="grid h-9 w-9 place-items-center rounded-2xl bg-sage text-white"><Leaf :size="18" /></span>
           <span><span class="block whitespace-nowrap font-display text-[15px] font-semibold tracking-wide">宜蘭縣瑜珈學會（教育中心）</span><span class="text-[10px] tracking-[.12em] text-sage">微光空中瑜珈&nbsp;&nbsp;SHIMMER YOGA</span></span>
         </button>
-        <div class="text-right"><p class="text-xs text-sage">你好，</p><p class="text-sm font-semibold">林小瑜 <span class="ml-1 inline-block h-2 w-2 rounded-full bg-emerald-400"></span></p></div>
+        <div v-if="auth.isAuthenticated || !auth.initialized" class="text-right"><p class="text-xs text-sage">你好，</p><p class="text-sm font-semibold">{{ auth.profile?.full_name ?? '學員' }} <span class="ml-1 inline-block h-2 w-2 rounded-full bg-emerald-400"></span></p></div>
+        <RouterLink v-else to="/login" class="rounded-xl bg-sage px-3 py-2 text-xs font-semibold text-white">登入</RouterLink>
       </header>
       <main class="flex-1 px-5 pb-24"><div class="mb-5 pt-1"><p class="text-xs font-medium tracking-[.2em] text-clay">{{ pageTitle }}</p></div><RouterView /></main>
       <nav class="safe-bottom fixed bottom-0 z-20 mx-auto flex w-full max-w-[430px] justify-around border-t border-sand bg-cream/95 px-2 pt-2 backdrop-blur">
