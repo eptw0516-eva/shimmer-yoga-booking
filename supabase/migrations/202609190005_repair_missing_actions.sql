@@ -1,6 +1,11 @@
 -- Repair actions for projects where an earlier migration stopped part-way through.
 -- Run this once in Supabase SQL Editor after migrations 001-004.
 
+alter table public.classes
+  add column if not exists course_type text not null default '常態課',
+  add column if not exists instructor_name text not null default '',
+  add column if not exists instructor_bio text not null default '';
+
 create or replace function public.cancel_booking(p_booking_id uuid)
 returns public.bookings
 language plpgsql security definer set search_path = public

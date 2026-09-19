@@ -100,14 +100,16 @@ export const useBookingStore = defineStore('booking', () => {
   async function createClass(input: Omit<YogaClass, 'id' | 'booked_count'>) {
     const auth = useAuthStore()
     if (!auth.isAdmin) { notify('只有管理員可以新增課程。', 'error'); return false }
+    const classInput = { ...input, instructor_id: input.instructor_id || auth.user?.id || '' }
+    if (!classInput.instructor_id) { notify('找不到管理員帳號，無法建立課程。', 'error'); return false }
     if (supabase) {
-      const { data, error } = await supabase.from('classes').insert({ ...input, booked_count: 0 } as never).select().single()
+      const { data, error } = await supabase.from('classes').insert({ ...classInput, booked_count: 0 } as never).select().single()
       if (error) { notify(error.message, 'error'); return false }
       if (data) classes.value.push(data as YogaClass)
     } else {
-      classes.value.push({ ...input, id: `class-${Date.now()}`, booked_count: 0 })
+      classes.value.push({ ...classInput, id: `class-${Date.now()}`, booked_count: 0 })
     }
-    notify(`已新增課程「${input.title}」。`)
+    notify(`已新增課程「${classInput.title}」。`)
     return true
   }
   async function approveOrder(order: PurchaseOrder) {
