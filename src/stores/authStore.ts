@@ -3,6 +3,8 @@ import { defineStore } from 'pinia'
 import { supabase } from '../services/supabase'
 import type { Profile } from '../types/database'
 
+const appUrl = (import.meta.env.VITE_APP_URL as string | undefined)?.replace(/\/$/, '') || window.location.origin
+
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<{ id: string; email?: string } | null>(null)
   const profile = ref<Profile | null>(null)
@@ -54,7 +56,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (!supabase) return { error: new Error('目前為展示模式，請先設定 Supabase。') }
     if (!email.trim()) return { error: new Error('請先輸入 Email。') }
     return supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/login?reset=1`,
+      redirectTo: `${appUrl}/login?reset=1`,
     })
   }
 

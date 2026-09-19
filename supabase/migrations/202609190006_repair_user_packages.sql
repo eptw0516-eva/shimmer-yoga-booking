@@ -2,7 +2,12 @@
 -- and purchase-plan metadata were added.
 
 alter table public.user_packages
-  add column if not exists user_id uuid;
+  add column if not exists user_id uuid,
+  add column if not exists total_credits integer not null default 0,
+  add column if not exists remaining_credits integer not null default 0,
+  add column if not exists valid_until date not null default current_date,
+  add column if not exists status public.package_status not null default 'active',
+  add column if not exists note text;
 
 do $$
 begin
