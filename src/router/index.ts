@@ -37,13 +37,13 @@ router.beforeEach(async (to) => {
   if (to.meta.requiresAuth && !auth.isAuthenticated) return `/login?redirect=${encodeURIComponent(to.fullPath)}`
   if (to.meta.adminOnly && !auth.isAdmin) return '/'
   if (to.meta.staff && !auth.isInstructor) return '/'
-  if (!to.meta.requiresAuth && !to.meta.public && to.path !== '/login' && to.path !== '/register') return '/'
-  if (!isSupabaseConfigured) return true
-  if (!supabase) return '/'
+  if (!to.meta.requiresAuth && !to.meta.public) return '/'
+  if (!isSupabaseConfigured || !supabase) return true
+  if (!auth.isAuthenticated) return true
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return '/'
-  const { data } = await supabase.from('profiles').select('role, is_instructor, is_active').eq('id', user.id).single()
-  const profile = data as unknown as { role?: string; is_instructor?: boolean; is_active?: boolean } | null
+  if (!user) return true
+  if (!auth.profile) await auth.loadProfile(user.id)
+  const profile = auth.profile
   if (!profile?.is_active) return '/'
   if (to.meta.adminOnly && profile.role !== 'admin') return '/'
   if (to.meta.staff && !(profile.role === 'admin' || profile.role === 'instructor' || profile.is_instructor)) return '/'
