@@ -24,7 +24,7 @@ async function submit() {
     : await auth.signIn(email.value, password.value)
   if (result.error) { error.value = result.error.message; return }
   if (register.value) message.value = '註冊成功！請至信箱完成驗證後登入。'
-  else await router.push('/')
+  else await router.push(typeof route.query.redirect === 'string' ? route.query.redirect : '/')
 }
 async function google() {
   const result = await auth.signInWithGoogle()

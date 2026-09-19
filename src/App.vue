@@ -14,6 +14,12 @@ const navItems = [
   { to: '/check-in', label: '簽到', icon: ClipboardCheck },
   { to: '/admin', label: '管理', icon: ShieldCheck },
 ]
+const visibleNavItems = computed(() => navItems.filter((item) => {
+  if (item.to === '/') return true
+  if (!auth.isAuthenticated) return false
+  if (item.to === '/admin') return auth.isAdmin
+  return true
+}))
 const pageTitle = computed(() => route.meta.title ?? '微光空中瑜珈')
 </script>
 
@@ -30,7 +36,7 @@ const pageTitle = computed(() => route.meta.title ?? '微光空中瑜珈')
       </header>
       <main class="flex-1 px-5 pb-24"><div class="mb-5 pt-1"><p class="text-xs font-medium tracking-[.2em] text-clay">{{ pageTitle }}</p></div><RouterView /></main>
       <nav class="safe-bottom fixed bottom-0 z-20 mx-auto flex w-full max-w-[430px] justify-around border-t border-sand bg-cream/95 px-2 pt-2 backdrop-blur">
-        <RouterLink v-for="item in navItems" :key="item.to" :to="item.to" class="flex w-20 flex-col items-center gap-1 py-1 text-[11px] text-stone-400 transition" :class="{ 'font-semibold !text-sage': route.path === item.to }">
+        <RouterLink v-for="item in visibleNavItems" :key="item.to" :to="item.to" class="flex w-20 flex-col items-center gap-1 py-1 text-[11px] text-stone-400 transition" :class="{ 'font-semibold !text-sage': route.path === item.to }">
           <component :is="item.icon" :size="20" :stroke-width="route.path === item.to ? 2.3 : 1.7" /><span>{{ item.label }}</span>
         </RouterLink>
       </nav>

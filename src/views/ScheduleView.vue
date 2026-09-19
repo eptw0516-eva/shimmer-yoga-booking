@@ -2,9 +2,13 @@
 import { computed, onMounted, ref } from 'vue'
 import { Clock3, MapPin, Sparkles, Users, X, UserRound } from 'lucide-vue-next'
 import { useBookingStore } from '../stores/bookingStore'
+import { useAuthStore } from '../stores/authStore'
+import { useRouter } from 'vue-router'
 import type { YogaClass } from '../types/database'
 
 const store = useBookingStore()
+const auth = useAuthStore()
+const router = useRouter()
 const selectedDate = ref(0)
 const pending = ref<YogaClass | null>(null)
 const dates = Array.from({ length: 7 }, (_, index) => {
@@ -20,6 +24,7 @@ const isBooked = (item: YogaClass) => store.activeBookings.some((booking) => boo
 const isClosed = (item: YogaClass) => new Date(item.start_time).getTime() - Date.now() <= 3 * 60 * 60 * 1000
 const isWaitlisted = (item: YogaClass) => store.waitlistedClassIds.includes(item.id)
 async function confirmBooking() { if (pending.value) await store.bookClass(pending.value); pending.value = null }
+function requireLogin() { if (!auth.isAuthenticated) router.push(`/login?redirect=${encodeURIComponent('/')}`) }
 onMounted(() => store.loadSchedule())
 </script>
 
@@ -43,9 +48,9 @@ onMounted(() => store.loadSchedule())
         <div class="flex items-center justify-between border-t border-sand pt-3"><span class="flex items-center gap-1 text-xs" :class="item.booked_count >= item.capacity ? 'text-clay' : 'text-stone-500'"><Users :size="14" />{{ item.booked_count >= item.capacity ? '額滿' : `剩餘 ${item.capacity - item.booked_count} 個名額` }}</span>
           <button v-if="isBooked(item)" class="rounded-xl bg-[#eef3ee] px-4 py-2 text-xs font-semibold text-sage" disabled>已預約</button>
           <button v-else-if="isWaitlisted(item)" class="rounded-xl bg-[#f5ede9] px-4 py-2 text-xs font-semibold text-clay" disabled>已加入候補</button>
-          <button v-else-if="item.booked_count >= item.capacity" class="rounded-xl border border-clay px-4 py-2 text-xs font-semibold text-clay" @click="store.joinWaitlist(item)">加入候補名單</button>
+          <button v-else-if="item.booked_count >= item.capacity" class="rounded-xl border border-clay px-4 py-2 text-xs font-semibold text-clay" @click="auth.isAuthenticated ? store.joinWaitlist(item) : requireLogin()">加入候補名單</button>
           <button v-else-if="isClosed(item)" class="rounded-xl bg-stone-300 px-4 py-2 text-xs font-semibold text-white" disabled>預約已截止</button>
-          <button v-else class="rounded-xl bg-clay px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#a66d61]" @click="pending = item">立即預約</button>
+          <button v-else class="rounded-xl bg-clay px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#a66d61]" @click="auth.isAuthenticated ? pending = item : requireLogin()">立即預約</button>
         </div>
         <p v-if="isClosed(item) && !isBooked(item)" class="mt-3 border-t border-sand pt-2 text-[11px] text-clay">開課前 3 小時截止預約</p>
       </article>

@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { supabase } from '../services/supabase'
+import { useAuthStore } from './authStore'
 import type { AttendanceRecord, Booking, CheckInResult, PaymentMethod, PurchaseOrder, PurchasePlan, UserPackage, YogaClass } from '../types/database'
 
 const today = new Date()
@@ -43,12 +44,14 @@ export const useBookingStore = defineStore('booking', () => {
     loading.value = false
   }
   async function bookClass(item: YogaClass) {
+    const auth = useAuthStore()
+    if (!auth.isAuthenticated || !auth.user) { notify('請先登入後再預約。', 'error'); return false }
     if (new Date(item.start_time).getTime() - Date.now() <= 3 * 60 * 60 * 1000) { notify('此課程已於開課前 3 小時截止預約。', 'error'); return false }
     if (item.booked_count >= item.capacity) { notify('這堂課已額滿，請加入候補名單。', 'error'); return false }
     if (availableCredits.value <= 0) { notify('目前沒有可用堂數，請先購買方案。', 'error'); return false }
     loading.value = true
     if (supabase) {
-      const { data, error } = await supabase.rpc('book_class', { p_class_id: item.id, p_user_id: 'demo-user' } as never) as unknown as { data: Booking | null; error: { message: string } | null }
+      const { data, error } = await supabase.rpc('book_class', { p_class_id: item.id, p_user_id: auth.user.id } as never) as unknown as { data: Booking | null; error: { message: string } | null }
       if (error) { notify(error.message, 'error'); loading.value = false; return false }
       if (data) bookings.value.push({ ...data, class: item })
     } else {
@@ -69,12 +72,14 @@ export const useBookingStore = defineStore('booking', () => {
     notify(status === 'attended' ? '已標記出席。' : '已標記缺席。')
   }
   async function submitPurchase(plan: PurchasePlan, paymentMethod: PaymentMethod, transferLastFive: string | null) {
+    const auth = useAuthStore()
+    if (!auth.isAuthenticated || !auth.user) { notify('請先登入後再送出購課申請。', 'error'); return false }
     if (paymentMethod === 'bank_transfer' && (!transferLastFive || !/^\d{5}$/.test(transferLastFive))) {
       notify('請輸入正確的匯款帳號末五碼。', 'error')
       return false
     }
     const order: PurchaseOrder = {
-      id: `order-${Date.now()}`, user_id: 'demo-user', plan_id: plan.id, plan_name: plan.name,
+      id: `order-${Date.now()}`, user_id: auth.user.id, plan_id: plan.id, plan_name: plan.name,
       amount: plan.price, payment_method: paymentMethod, transfer_last_five: transferLastFive,
       status: 'pending_review', created_at: new Date().toISOString(),
     }
@@ -118,6 +123,8 @@ export const useBookingStore = defineStore('booking', () => {
     return true
   }
   async function cancelBooking(booking: Booking, late = false) {
+    const auth = useAuthStore()
+    if (!auth.isAuthenticated) { notify('請先登入後再管理預約。', 'error'); return false }
     const hoursUntilClass = (new Date(booking.class?.start_time ?? 0).getTime() - Date.now()) / 3600000
     if (!late && hoursUntilClass < 3) {
       notify('已逾可取消時限，請使用逾期請假。', 'error')
@@ -139,6 +146,8 @@ export const useBookingStore = defineStore('booking', () => {
     return true
   }
   async function checkInBooking(token: string): Promise<CheckInResult | null> {
+    const auth = useAuthStore()
+    if (!auth.isAuthenticated) { notify('請先登入後再簽到。', 'error'); return null }
     const validToken = token === 'SHIMMER_CHECKIN_SECRET'
     if (!validToken) { notify('QR Code 不符合微光空中瑜珈簽到規格。', 'error'); return null }
     const booking = bookings.value.find((item) => item.status === 'confirmed' && item.class)

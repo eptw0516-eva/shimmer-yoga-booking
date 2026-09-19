@@ -4,9 +4,11 @@ import { Html5Qrcode } from 'html5-qrcode'
 import { Check, ClipboardCheck, QrCode, UserCheck, Users, X } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { useBookingStore } from '../stores/bookingStore'
+import { useAuthStore } from '../stores/authStore'
 import type { AttendanceRecord } from '../types/database'
 
 const store = useBookingStore()
+const auth = useAuthStore()
 const router = useRouter()
 const mode = ref<'member' | 'instructor'>('member')
 const scanning = ref(false)
@@ -80,7 +82,7 @@ onUnmounted(() => { void stopScanner() })
   <div class="animate-rise">
     <div class="mb-5 flex rounded-2xl bg-sand p-1">
       <button class="flex-1 rounded-xl py-2 text-xs" :class="mode === 'member' ? 'bg-white font-semibold text-sage shadow-sm' : 'text-stone-500'" @click="mode = 'member'"><UserCheck :size="15" class="mr-1 inline" />學員掃碼簽到</button>
-      <button class="flex-1 rounded-xl py-2 text-xs" :class="mode === 'instructor' ? 'bg-white font-semibold text-sage shadow-sm' : 'text-stone-500'" @click="mode = 'instructor'"><Users :size="15" class="mr-1 inline" />老師點名</button>
+      <button v-if="auth.isInstructor" class="flex-1 rounded-xl py-2 text-xs" :class="mode === 'instructor' ? 'bg-white font-semibold text-sage' : 'text-stone-500'" @click="mode = 'instructor'"><Users :size="15" class="mr-1 inline" />老師點名</button>
     </div>
     <template v-if="mode === 'member'">
       <section class="mb-4 rounded-[28px] bg-sage p-5 text-center text-white">

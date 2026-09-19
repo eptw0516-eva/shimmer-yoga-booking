@@ -17,7 +17,7 @@ begin
     coalesce(new.raw_user_meta_data ->> 'full_name', ''),
     new.raw_user_meta_data ->> 'avatar_url',
     nullif(new.raw_user_meta_data ->> 'birth_date', '')::date,
-    new.raw_user_meta_data ->> 'phone',
+    coalesce(nullif(new.raw_user_meta_data ->> 'phone', ''), '待補電話'),
     new.raw_user_meta_data ->> 'line_user_id'
   )
   on conflict (id) do update set
