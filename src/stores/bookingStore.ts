@@ -62,14 +62,20 @@ export const useBookingStore = defineStore('booking', () => {
     loading.value = false; notify(`已成功預約「${item.title}」！`); return true
   }
   function joinWaitlist(item: YogaClass) {
+    const auth = useAuthStore()
+    if (!auth.isAuthenticated) { notify('請先登入後再加入候補名單。', 'error'); return false }
     if (!waitlistedClassIds.value.includes(item.id)) waitlistedClassIds.value.push(item.id)
     notify(`已加入「${item.title}」候補名單，釋出名額時會通知您。`)
+    return true
   }
   function markAttendance(bookingId: string, status: AttendanceRecord['status']) {
+    const auth = useAuthStore()
+    if (!auth.isInstructor) { notify('只有老師或管理員可以點名。', 'error'); return false }
     const current = attendance.value.find((item) => item.booking_id === bookingId)
     if (current) current.status = status
     else attendance.value.push({ booking_id: bookingId, status })
     notify(status === 'attended' ? '已標記出席。' : '已標記缺席。')
+    return true
   }
   async function submitPurchase(plan: PurchasePlan, paymentMethod: PaymentMethod, transferLastFive: string | null) {
     const auth = useAuthStore()
