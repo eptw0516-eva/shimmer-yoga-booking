@@ -44,6 +44,9 @@ export const useAuthStore = defineStore('auth', () => {
       await loadProfile(result.data.user.id)
     }
 
+    if (result.error && result.error.message.toLowerCase().includes('email not confirmed')) {
+      return { ...result, error: new Error('此帳號尚未完成 Email 驗證。請先到信箱確認，或使用「忘記密碼」重新設定。') }
+    }
     return result
   }
 
