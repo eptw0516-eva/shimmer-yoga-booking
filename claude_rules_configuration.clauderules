@@ -1,0 +1,42 @@
+# 專案規範與開發指引 (Yoga Studio Booking System)
+
+## 專案定位與目標
+本專案為一套專供瑜伽教室使用的輕量化預約與學員管理系統。採用 Serverless 雲端架構，追求零/低成本營運，前端體驗需完全適配手機操作（LINE LIFF / PWA），具備直覺的課表預約、扣堂交易與現場簽到功能。
+
+---
+
+## 核心技術棧 (Tech Stack)
+- **前端框架**：Vue 3 (Composition API, `<script setup>`) 或 React 18+（依專案初始化選定，嚴禁中途切換）
+- **樣式庫**：Tailwind CSS（Mobile-First 設計，所有視圖皆優先以手機螢幕寬度 375px~430px 適配）
+- **後端與資料庫**：Supabase (PostgreSQL + Auth + Storage + Realtime)
+- **狀態管理**：Pinia (若為 Vue) 或 Zustand (若為 React)
+- **客戶端部署標的**：LINE LIFF 與 PWA (可離線快取基本靜態資源)
+
+---
+
+## 架構與程式碼原則 (Coding Principles)
+1. **嚴格交易保證 (ACID Compliance)**：
+   - 預約課程扣點、取消退點、購課加點等任何涉及堂數餘額變更的操作，**必須**寫在 PostgreSQL Function (RPC) 內以 Database Transaction 執行。
+   - 嚴禁僅在前端檢查名額或餘額；後端必須具備樂觀鎖（Optimistic Locking）或列級鎖定（`FOR UPDATE`），徹底杜絕超賣（Overbooking）。
+2. **安全性與資料隔離 (Row Level Security - RLS)**：
+   - Supabase 所有資料表預設開啟 RLS。
+   - 學員角色（`member`）僅能讀寫個人預約紀錄與個人剩餘堂數；管理員角色（`admin`）與老師（`instructor`）具備對應管理權限。
+3. **組件化與代碼品質**：
+   - 遵從單一職責原則（Single Responsibility Principle）。
+   - 每個函式與 API 呼叫需提供清晰的 TypeScript 介面定義與錯誤處理。
+   - 介面回饋（Loading 骨架屏、成功 Toast、交易失敗警告）必須完整。
+
+---
+
+## 角色與權限架構
+- **Guest / 未綁定**：僅能瀏覽公開課表與方案介紹。
+- **Member (學員)**：登入（LINE UID / Supabase Auth）、查看個人可用堂數、預約排程、取消預約、檢視歷史紀錄。
+- **Instructor (任課老師)**：檢視個人帶課清單、課堂學員名冊、執行簽到點名。
+- **Admin (教室主管/櫃檯)**：學員資料維護、手動充值/調整堂數、排課管理、查看營收與簽到統計。
+
+---
+
+## 開發流程約束
+- 每次實作前，先簡述即將變更或建立的檔案清單。
+- 遇有重大資料結構變動，需在 `/supabase/migrations` 自動產生帶有時間戳記的 SQL Migration 檔。
+- 維護本機測試環境穩定，任何相依套件安裝需確認與現有版本相容。
