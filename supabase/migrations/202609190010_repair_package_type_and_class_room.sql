@@ -5,8 +5,8 @@ alter table public.user_packages
   add column if not exists package_type text;
 
 update public.user_packages
-set package_type = coalesce(nullif(package_type, ''), plan_type, 'credits')
-where package_type is null or package_type = '';
+set package_type = coalesce(plan_type, 'credits')::public.package_type
+where package_type is null;
 
 alter table public.user_packages
   alter column package_type set default 'credits',
@@ -73,7 +73,7 @@ begin
     plan_name, plan_type, shared_with_phones
   )
   values (
-    locked_order.user_id, locked_order.user_id, locked_order.plan_name, package_type_value,
+    locked_order.user_id, locked_order.user_id, locked_order.plan_name, package_type_value::public.package_type,
     package_credits, package_credits, current_date + package_days, 'active',
     locked_order.plan_name, package_type_value, '{}'
   )
