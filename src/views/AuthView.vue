@@ -26,9 +26,9 @@ async function submit() {
     : await auth.signIn(email.value, password.value)
   if (result.error) { error.value = result.error.message; return }
   if (register.value) {
-    if (auth.isAuthenticated) await router.push(typeof route.query.redirect === 'string' ? route.query.redirect : '/')
+    if (auth.isAuthenticated) await router.replace(typeof route.query.redirect === 'string' ? route.query.redirect : '/')
     else message.value = '註冊成功！請確認 Supabase 已關閉 Email 驗證後再登入。'
-  } else await router.push(typeof route.query.redirect === 'string' ? route.query.redirect : '/')
+  } else await router.replace(typeof route.query.redirect === 'string' ? route.query.redirect : '/')
 }
 async function forgotPassword() {
   error.value = ''; message.value = ''
