@@ -8,6 +8,7 @@ export type OrderStatus = 'pending_review' | 'approved' | 'rejected'
 
 export interface Profile {
   id: string
+  email?: string | null
   role: UserRole
   line_user_id: string | null
   phone: string | null
@@ -21,6 +22,8 @@ export interface Profile {
 export interface UserPackage {
   id: string
   user_id: string
+  owner_id?: string | null
+  package_name?: string
   total_credits: number
   remaining_credits: number
   valid_until: string
