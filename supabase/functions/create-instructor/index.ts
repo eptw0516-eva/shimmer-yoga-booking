@@ -21,14 +21,28 @@ Deno.serve(async (request) => {
     const serviceRoleKey = Deno.env.get('SERVICE_ROLE_KEY')
     if (!serviceRoleKey) throw new Error('Supabase Function 尚未設定 SERVICE_ROLE_KEY')
     const admin = createClient(Deno.env.get('SUPABASE_URL')!, serviceRoleKey)
-    const { data: created, error } = await admin.auth.admin.createUser({ email: payload.email.trim(), password: payload.password, email_confirm: true, user_metadata: { full_name: payload.full_name, phone: payload.phone } })
-    if (error || !created.user) throw error ?? new Error('建立老師帳號失敗')
-    const { error: profileError } = await admin.from('profiles').upsert({ id: created.user.id, email: payload.email.trim(), full_name: payload.full_name.trim(), phone: payload.phone.trim(), role: 'instructor', is_instructor: true, is_active: payload.is_active !== false })
+    const email = payload.email.trim().toLowerCase()
+    let teacherId: string
+    let createdNewUser = false
+    const { data: created, error } = await admin.auth.admin.createUser({ email, password: payload.password, email_confirm: true, user_metadata: { full_name: payload.full_name, phone: payload.phone } })
+    if (created?.user) {
+      teacherId = created.user.id
+      createdNewUser = true
+    } else if (error?.message?.toLowerCase().includes('already') || error?.message?.toLowerCase().includes('registered')) {
+      const { data: existing, error: existingError } = await admin.auth.admin.getUserByEmail(email)
+      if (existingError || !existing.user) throw new Error('此 Email 已存在，但找不到對應的登入帳號。請確認 Supabase Auth 使用者資料。')
+      teacherId = existing.user.id
+      const { error: passwordError } = await admin.auth.admin.updateUserById(teacherId, { password: payload.password, email_confirm: true, user_metadata: { ...existing.user.user_metadata, full_name: payload.full_name, phone: payload.phone } })
+      if (passwordError) throw passwordError
+    } else {
+      throw error ?? new Error('建立老師帳號失敗')
+    }
+    const { error: profileError } = await admin.from('profiles').upsert({ id: teacherId, email, full_name: payload.full_name.trim(), phone: payload.phone.trim(), role: 'instructor', is_instructor: true, is_active: payload.is_active !== false })
     if (profileError) {
-      await admin.auth.admin.deleteUser(created.user.id)
+      if (createdNewUser) await admin.auth.admin.deleteUser(teacherId)
       throw profileError
     }
-    return new Response(JSON.stringify({ ok: true, id: created.user.id }), { status: 200, headers: { ...cors, 'Content-Type': 'application/json' } })
+    return new Response(JSON.stringify({ ok: true, id: teacherId, existing: !createdNewUser }), { status: 200, headers: { ...cors, 'Content-Type': 'application/json' } })
   } catch (error) {
     const message = error instanceof Error ? error.message : '建立老師失敗'
     console.error('create-instructor failed:', message)
