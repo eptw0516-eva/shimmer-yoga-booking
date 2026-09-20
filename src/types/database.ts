@@ -70,7 +70,7 @@ export interface YogaClass {
   end_time: string
   capacity: number
   booked_count: number
-  level: '初階' | '中階' | '進階'
+  level: '初階' | '中階' | '高階' | '進階'
 }
 export interface Booking {
   id: string

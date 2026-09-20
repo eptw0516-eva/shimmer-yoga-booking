@@ -70,7 +70,10 @@ export const useBookingStore = defineStore('booking', () => {
     if (supabase) {
       const { data, error } = await supabase.rpc('book_class', { p_class_id: item.id, p_user_id: auth.user.id } as never) as unknown as { data: Booking | null; error: { message: string } | null }
       if (error) { notify(error.message, 'error'); loading.value = false; return false }
-      if (data) bookings.value.push({ ...data, class: item })
+      if (!data) { notify('預約服務沒有回傳結果，請重新整理後確認。', 'error'); loading.value = false; return false }
+      bookings.value = [{ ...data, class: { ...item, booked_count: item.booked_count + 1 } }, ...bookings.value]
+      item.booked_count += 1
+      await loadUserData()
     } else {
       item.booked_count += 1
       packages.value[0].remaining_credits -= 1
@@ -127,6 +130,33 @@ export const useBookingStore = defineStore('booking', () => {
       classes.value.push({ ...classInput, id: `class-${Date.now()}`, booked_count: 0 })
     }
     notify(`已新增課程「${classInput.title}」。`)
+    return true
+  }
+  async function createRecurringClasses(input: Omit<YogaClass, 'id' | 'booked_count'>, weekday: number, startDate: string, endDate: string) {
+    const first = new Date(`${startDate}T00:00:00`)
+    const last = new Date(`${endDate}T00:00:00`)
+    if (Number.isNaN(first.getTime()) || Number.isNaN(last.getTime()) || first > last) {
+      notify('請確認開課日期區間。', 'error')
+      return false
+    }
+    const dates: Date[] = []
+    const cursor = new Date(first)
+    while (cursor <= last) {
+      if (cursor.getDay() === weekday) dates.push(new Date(cursor))
+      cursor.setDate(cursor.getDate() + 1)
+    }
+    if (!dates.length) { notify('日期區間內沒有符合的星期。', 'error'); return false }
+    loading.value = true
+    for (const date of dates) {
+      const start = new Date(`${startDate}T${new Date(input.start_time).toTimeString().slice(0, 5)}`)
+      start.setFullYear(date.getFullYear(), date.getMonth(), date.getDate())
+      const end = new Date(`${endDate}T${new Date(input.end_time).toTimeString().slice(0, 5)}`)
+      end.setFullYear(date.getFullYear(), date.getMonth(), date.getDate())
+      const success = await createClass({ ...input, start_time: start.toISOString(), end_time: end.toISOString() })
+      if (!success) { loading.value = false; return false }
+    }
+    loading.value = false
+    notify(`已建立 ${dates.length} 堂「${input.title}」。`)
     return true
   }
   async function approveOrder(order: PurchaseOrder) {
@@ -208,5 +238,5 @@ export const useBookingStore = defineStore('booking', () => {
     return { booking, class: booking.class }
   }
   function clearToast() { toast.value = null }
-  return { classes, bookings, packages, orders, pendingOrders, loading, toast, availableCredits, activeBookings, pastBookings, waitlistedClassIds, attendance, loadSchedule, loadUserData, bookClass, joinWaitlist, cancelBooking, checkInBooking, markAttendance, submitPurchase, createClass, approveOrder, sharePackage, notify, clearToast }
+  return { classes, bookings, packages, orders, pendingOrders, loading, toast, availableCredits, activeBookings, pastBookings, waitlistedClassIds, attendance, loadSchedule, loadUserData, bookClass, joinWaitlist, cancelBooking, checkInBooking, markAttendance, submitPurchase, createClass, createRecurringClasses, approveOrder, sharePackage, notify, clearToast }
 })
