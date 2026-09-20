@@ -59,10 +59,13 @@ export const useBookingStore = defineStore('booking', () => {
     const auth = useAuthStore()
     if (!supabase || !auth.user) return
     loading.value = true
+    const orderQuery = auth.isAdmin
+      ? supabase.from('purchase_orders').select('*').order('created_at', { ascending: false })
+      : supabase.from('purchase_orders').select('*').eq('user_id', auth.user.id).order('created_at', { ascending: false })
     const [bookingResult, packageResult, orderResult] = await Promise.all([
       supabase.from('bookings').select('*, class:classes(*)').eq('user_id', auth.user.id).order('created_at', { ascending: false }),
       supabase.from('user_packages').select('*').eq('user_id', auth.user.id).order('valid_until', { ascending: true }),
-      supabase.from('purchase_orders').select('*').eq('user_id', auth.user.id).order('created_at', { ascending: false }),
+      orderQuery,
     ])
     if (bookingResult.error) notify(`預約資料載入失敗：${bookingResult.error.message}`, 'error')
     else bookings.value = (bookingResult.data ?? []) as Booking[]

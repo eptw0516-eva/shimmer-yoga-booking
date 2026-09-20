@@ -16,7 +16,7 @@ const teacherForm = ref({ full_name: '', email: '', phone: '', password: '' })
 async function loadProfiles() {
   if (!supabase) { profiles.value = []; store.notify('Supabase 尚未設定，無法載入真實會員資料。', 'error'); return }
   const { error: syncError } = await supabase.rpc('sync_auth_profiles' as never)
-  if (syncError) { store.notify(`會員同步失敗：${syncError.message}`, 'error'); return }
+  if (syncError) store.notify(`會員同步失敗：${syncError.message}；將先載入既有會員資料。`, 'error')
   const [profileResult, packageResult] = await Promise.all([
     supabase.from('profiles').select('*').order('created_at'),
     supabase.from('user_packages').select('user_id,package_name,remaining_credits,total_credits,valid_until,status').order('valid_until', { ascending: true }) as unknown as Promise<{ data: Array<{ user_id: string; package_name?: string; remaining_credits: number; total_credits: number; valid_until: string; status: string }> | null; error: { message: string } | null }>,
@@ -68,9 +68,10 @@ async function createTeacher() {
       store.notify(detail, 'error')
       return
     }
-    store.notify('老師帳號已建立，可以在新增課程時選擇。')
+    store.notify(data?.existing ? '既有帳號已轉為老師，請登出後用該 Email 登入。' : '老師帳號已建立，可以在新增課程時選擇。')
     teacherForm.value = { full_name: '', email: '', phone: '', password: '' }
     showTeacherForm.value = false
+    await new Promise((resolve) => window.setTimeout(resolve, 300))
     await loadProfiles()
   } catch (error) {
     store.notify(error instanceof Error ? error.message : '建立老師失敗，請稍後再試。', 'error')
