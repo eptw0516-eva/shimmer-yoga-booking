@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { ArrowLeft, Banknote, Check, ChevronRight, Landmark, ShoppingBag } from 'lucide-vue-next'
-import { purchasePlans, useBookingStore } from '../stores/bookingStore'
+import { useBookingStore } from '../stores/bookingStore'
 import type { PaymentMethod, PurchasePlan } from '../types/database'
 
 const store = useBookingStore()
-onMounted(() => void store.loadUserData())
+onMounted(() => { void store.loadUserData(); void store.loadPurchasePlans() })
 const selected = ref<PurchasePlan | null>(null)
 const paymentMethod = ref<PaymentMethod>('bank_transfer')
 const transferLastFive = ref('')
@@ -28,7 +28,7 @@ async function submit() {
     </section>
     <div v-if="submitted" class="mb-5 flex items-start gap-3 rounded-2xl bg-[#edf3ed] p-4 text-sm text-sage"><Check :size="18" class="mt-0.5 shrink-0" /><span>購課申請已送出，管理員確認入帳後，票券會出現在「我的堂數」。</span></div>
     <div class="space-y-3">
-      <article v-for="plan in purchasePlans" :key="plan.id" class="rounded-3xl border border-sand bg-white p-4 shadow-sm">
+      <article v-for="plan in store.plans" :key="plan.id" class="rounded-3xl border border-sand bg-white p-4 shadow-sm">
         <div class="flex items-start gap-3"><span class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#f5ede9] text-clay"><Banknote :size="20" /></span><div class="flex-1"><div class="flex items-center gap-2"><h2 class="font-semibold">{{ plan.name }}</h2><span v-if="plan.badge" class="rounded-full bg-[#efeff7] px-2 py-0.5 text-[10px] text-sage">{{ plan.badge }}</span></div><p class="mt-1 text-xs leading-relaxed text-stone-500">{{ plan.description }}</p><p class="mt-2 text-xs text-stone-400">有效 {{ plan.validDays }} 天 · {{ plan.shareable ? '可共享給親友' : '限本人使用' }}</p></div></div>
         <div class="mt-4 flex items-center justify-between border-t border-sand pt-3"><strong class="text-lg text-sage">NT$ {{ formatPrice(plan.price) }}</strong><button class="rounded-xl bg-clay px-4 py-2 text-xs font-semibold text-white" @click="selected = plan">申請購買 <ChevronRight :size="14" class="ml-1 inline" /></button></div>
       </article>

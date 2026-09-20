@@ -2,7 +2,7 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { supabase } from '../services/supabase'
 import { useAuthStore } from './authStore'
-import type { AttendanceRecord, Booking, CheckInResult, PaymentMethod, PurchaseOrder, PurchasePlan, UserPackage, YogaClass } from '../types/database'
+import type { AttendanceRecord, Booking, CheckInResult, PaymentMethod, PurchaseOrder, PurchasePlan, PurchasePlanType, UserPackage, YogaClass } from '../types/database'
 
 const today = new Date()
 const dateAt = (offset: number, hour: number, minute = 0) => {
@@ -24,6 +24,7 @@ export const purchasePlans: PurchasePlan[] = [
 
 export const useBookingStore = defineStore('booking', () => {
   const classes = ref<YogaClass[]>([...demoClasses])
+  const plans = ref<PurchasePlan[]>([...purchasePlans])
   const bookings = ref<Booking[]>([])
   const packages = ref<UserPackage[]>([])
   const orders = ref<PurchaseOrder[]>([])
@@ -43,6 +44,16 @@ export const useBookingStore = defineStore('booking', () => {
     if (!error && data) classes.value = data
     else if (error) notify(`課表載入失敗：${error.message}`, 'error')
     loading.value = false
+  }
+  async function loadPurchasePlans() {
+    if (!supabase) return
+    const { data, error } = await supabase.from('purchase_plans').select('*').eq('is_active', true).order('sort_order') as unknown as { data: Array<{ id: string; name: string; category: string; description: string; total_price: number; unit_price: number; credits: number | null; valid_days: number; shareable: boolean; badge: string | null; note: string | null; is_active: boolean }> | null; error: { message: string } | null }
+    if (error) { notify(`商城方案載入失敗：${error.message}`, 'error'); return }
+    plans.value = (data ?? []).map((item) => ({
+      id: item.id, name: item.name, type: item.category as PurchasePlanType, description: item.description,
+      price: item.total_price, unit_price: item.unit_price, credits: item.credits, validDays: item.valid_days,
+      shareable: item.shareable, badge: item.badge ?? undefined, note: item.note, is_active: item.is_active,
+    }))
   }
   async function loadUserData() {
     const auth = useAuthStore()
@@ -238,5 +249,5 @@ export const useBookingStore = defineStore('booking', () => {
     return { booking, class: booking.class }
   }
   function clearToast() { toast.value = null }
-  return { classes, bookings, packages, orders, pendingOrders, loading, toast, availableCredits, activeBookings, pastBookings, waitlistedClassIds, attendance, loadSchedule, loadUserData, bookClass, joinWaitlist, cancelBooking, checkInBooking, markAttendance, submitPurchase, createClass, createRecurringClasses, approveOrder, sharePackage, notify, clearToast }
+  return { classes, plans, bookings, packages, orders, pendingOrders, loading, toast, availableCredits, activeBookings, pastBookings, waitlistedClassIds, attendance, loadSchedule, loadPurchasePlans, loadUserData, bookClass, joinWaitlist, cancelBooking, checkInBooking, markAttendance, submitPurchase, createClass, createRecurringClasses, approveOrder, sharePackage, notify, clearToast }
 })

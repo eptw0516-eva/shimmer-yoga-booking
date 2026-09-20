@@ -40,10 +40,13 @@ export interface PurchasePlan {
   type: PurchasePlanType
   description: string
   price: number
+  unit_price?: number
+  note?: string | null
   credits: number | null
   validDays: number
   shareable: boolean
   badge?: string
+  is_active?: boolean
 }
 export interface PurchaseOrder {
   id: string
@@ -97,6 +100,7 @@ export interface Database {
       classes: { Row: YogaClass; Insert: Omit<YogaClass, 'id'>; Update: Partial<YogaClass>; Relationships: [] }
       bookings: { Row: Booking; Insert: Omit<Booking, 'id' | 'created_at'>; Update: Partial<Booking>; Relationships: [] }
       purchase_orders: { Row: PurchaseOrder; Insert: Omit<PurchaseOrder, 'id' | 'created_at'>; Update: Partial<PurchaseOrder>; Relationships: [] }
+      purchase_plans: { Row: { id: string; category: PurchasePlanType; name: string; badge: string | null; note: string | null; description: string; valid_days: number; shareable: boolean; credits: number | null; unit_price: number; total_price: number; is_active: boolean; sort_order: number; created_at: string; updated_at: string }; Insert: never; Update: Partial<{ name: string; category: PurchasePlanType; badge: string | null; note: string | null; description: string; valid_days: number; shareable: boolean; credits: number | null; unit_price: number; total_price: number; is_active: boolean; sort_order: number }>; Relationships: [] }
     }
     Functions: {
       book_class: { Args: { p_class_id: string; p_user_id: string }; Returns: Booking }
