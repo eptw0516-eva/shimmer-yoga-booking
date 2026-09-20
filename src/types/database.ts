@@ -24,6 +24,8 @@ export interface UserPackage {
   user_id: string
   owner_id?: string | null
   package_name?: string
+  package_type?: string | null
+  initial_credits?: number
   total_credits: number
   remaining_credits: number
   valid_until: string
@@ -33,6 +35,10 @@ export interface UserPackage {
   plan_name?: string
   plan_type?: PurchasePlanType
   shared_with_phones?: string[]
+  purchase_amount?: number | null
+  unit_price?: number | null
+  plan_description?: string | null
+  shareable?: boolean
 }
 export interface PurchasePlan {
   id: string
