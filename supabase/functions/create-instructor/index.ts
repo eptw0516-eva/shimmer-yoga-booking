@@ -28,8 +28,10 @@ Deno.serve(async (request) => {
       await admin.auth.admin.deleteUser(created.user.id)
       throw profileError
     }
-    return new Response(JSON.stringify({ id: created.user.id }), { headers: { ...cors, 'Content-Type': 'application/json' } })
+    return new Response(JSON.stringify({ ok: true, id: created.user.id }), { status: 200, headers: { ...cors, 'Content-Type': 'application/json' } })
   } catch (error) {
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : '建立老師失敗' }), { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } })
+    const message = error instanceof Error ? error.message : '建立老師失敗'
+    console.error('create-instructor failed:', message)
+    return new Response(JSON.stringify({ ok: false, error: message }), { status: 400, headers: { ...cors, 'Content-Type': 'application/json' } })
   }
 })
