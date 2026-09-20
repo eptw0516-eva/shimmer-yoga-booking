@@ -41,6 +41,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (!supabase) return
     const { data, error } = await supabase.from('profiles').select('*').eq('id', id).single()
     if (!error && data) profile.value = data
+    else if (error) console.error('Unable to load member profile:', error.message)
   }
 
   async function signIn(email: string, password: string) {
@@ -58,6 +59,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (!result.error && result.data.user) {
       user.value = { id: result.data.user.id, email: result.data.user.email }
       await loadProfile(result.data.user.id)
+      if (!profile.value) return { error: new Error('登入成功，但會員資料尚未建立，請請管理員同步會員資料。') }
     }
 
     if (result.error && result.error.message.toLowerCase().includes('email not confirmed')) {
