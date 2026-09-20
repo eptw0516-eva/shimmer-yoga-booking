@@ -70,8 +70,8 @@ onMounted(async () => { await store.loadSchedule(); if (auth.isAuthenticated) aw
         <div class="flex items-center justify-end border-t border-sand pt-3">
           <button v-if="isBooked(item)" class="rounded-xl bg-[#eef3ee] px-4 py-2 text-xs font-semibold text-sage" disabled>已預約</button>
           <button v-else-if="isWaitlisted(item)" class="rounded-xl bg-[#f5ede9] px-4 py-2 text-xs font-semibold text-clay" disabled>已加入候補</button>
+          <button v-else-if="isClosed(item)" class="rounded-xl bg-stone-300 px-4 py-2 text-xs font-semibold text-white" disabled>{{ item.booked_count >= item.capacity ? '候補已截止' : '預約已截止' }}</button>
           <button v-else-if="item.booked_count >= item.capacity" class="rounded-xl border border-clay px-4 py-2 text-xs font-semibold text-clay" @click="auth.isAuthenticated ? store.joinWaitlist(item) : requireLogin()">加入候補名單</button>
-          <button v-else-if="isClosed(item)" class="rounded-xl bg-stone-300 px-4 py-2 text-xs font-semibold text-white" disabled>預約已截止</button>
           <button v-else class="rounded-xl bg-clay px-4 py-2 text-xs font-semibold text-white" @click="auth.isAuthenticated ? pending = item : requireLogin()">立即預約</button>
         </div>
         <p v-if="isClosed(item) && !isBooked(item)" class="mt-3 border-t border-sand pt-2 text-[11px] text-clay">開課前 10 分鐘截止預約</p>

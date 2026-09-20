@@ -38,6 +38,13 @@ export const useBookingStore = defineStore('booking', () => {
   const activeBookings = computed(() => bookings.value.filter((booking) => booking.status === 'confirmed'))
   const pastBookings = computed(() => bookings.value.filter((booking) => booking.status !== 'confirmed'))
   const notify = (message: string, type: 'success' | 'error' = 'success') => { toast.value = { message, type }; window.setTimeout(() => { toast.value = null }, 3000) }
+  const databaseMessage = (message: string) => {
+    if (message.includes('CLASS_STARTED')) return '這堂課已經開始或結束，無法再加入候補。'
+    if (message.includes('CLASS_NOT_FULL')) return '課程目前尚未額滿，可以直接預約。'
+    if (message.includes('ALREADY_WAITLISTED')) return '您已在這堂課的候補名單中。'
+    if (message.includes('ALREADY_BOOKED')) return '您已預約這堂課。'
+    return message
+  }
   async function loadSchedule() {
     if (!supabase) return
     loading.value = true
@@ -113,7 +120,7 @@ export const useBookingStore = defineStore('booking', () => {
     if (waitlistedClassIds.value.includes(item.id)) { notify('您已在這堂課的候補名單中。', 'error'); return false }
     if (supabase) {
       const { data, error } = await supabase.rpc('join_class_waitlist', { p_class_id: item.id } as never) as unknown as { data: WaitlistEntry | null; error: { message: string } | null }
-      if (error) { notify(error.message, 'error'); return false }
+      if (error) { notify(databaseMessage(error.message), 'error'); return false }
       if (data) waitlists.value.push(data)
     }
     waitlistedClassIds.value.push(item.id)
