@@ -90,6 +90,15 @@ export interface Booking {
   checked_in_at?: string | null
   class?: YogaClass
 }
+export interface WaitlistEntry {
+  id: string
+  class_id: string
+  user_id: string
+  position: number
+  status: 'pending' | 'promoted' | 'cancelled'
+  created_at: string
+  profile?: Pick<Profile, 'full_name' | 'phone' | 'email'>
+}
 export interface AttendanceRecord {
   booking_id: string
   status: 'attended' | 'no_show'
@@ -110,6 +119,7 @@ export interface Database {
     }
     Functions: {
       book_class: { Args: { p_class_id: string; p_user_id: string }; Returns: Booking }
+      join_class_waitlist: { Args: { p_class_id: string }; Returns: WaitlistEntry }
       cancel_booking: { Args: { p_booking_id: string }; Returns: Booking }
       late_cancel_booking: { Args: { p_booking_id: string }; Returns: Booking }
       checkin_class: { Args: { p_booking_id: string; p_token: string }; Returns: Booking }

@@ -74,7 +74,7 @@ onMounted(async () => { await store.loadSchedule(); if (auth.isAuthenticated) aw
           <button v-else-if="isClosed(item)" class="rounded-xl bg-stone-300 px-4 py-2 text-xs font-semibold text-white" disabled>預約已截止</button>
           <button v-else class="rounded-xl bg-clay px-4 py-2 text-xs font-semibold text-white" @click="auth.isAuthenticated ? pending = item : requireLogin()">立即預約</button>
         </div>
-        <p v-if="isClosed(item) && !isBooked(item)" class="mt-3 border-t border-sand pt-2 text-[11px] text-clay">開課前 3 小時截止預約</p>
+        <p v-if="isClosed(item) && !isBooked(item)" class="mt-3 border-t border-sand pt-2 text-[11px] text-clay">開課前 10 分鐘截止預約</p>
       </article>
     </div>
     <div v-else class="rounded-3xl border border-dashed border-sand py-12 text-center text-sm text-stone-400">這天還沒有排課，換一天看看吧。</div>

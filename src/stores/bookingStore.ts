@@ -2,7 +2,7 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { supabase } from '../services/supabase'
 import { useAuthStore } from './authStore'
-import type { AttendanceRecord, Booking, CheckInResult, PaymentMethod, PurchaseOrder, PurchasePlan, PurchasePlanType, UserPackage, YogaClass } from '../types/database'
+import type { AttendanceRecord, Booking, CheckInResult, PaymentMethod, PurchaseOrder, PurchasePlan, PurchasePlanType, UserPackage, WaitlistEntry, YogaClass } from '../types/database'
 
 const today = new Date()
 const dateAt = (offset: number, hour: number, minute = 0) => {
@@ -31,6 +31,7 @@ export const useBookingStore = defineStore('booking', () => {
   const loading = ref(false)
   const toast = ref<{ message: string; type: 'success' | 'error' } | null>(null)
   const waitlistedClassIds = ref<string[]>([])
+  const waitlists = ref<WaitlistEntry[]>([])
   const attendance = ref<AttendanceRecord[]>([])
   const pendingOrders = computed(() => orders.value.filter((order) => order.status === 'pending_review'))
   const availableCredits = computed(() => packages.value.reduce((sum, item) => sum + (item.status === 'active' ? item.remaining_credits : 0), 0))
@@ -62,16 +63,21 @@ export const useBookingStore = defineStore('booking', () => {
     const orderQuery = auth.isAdmin
       ? supabase.from('purchase_orders').select('*').order('created_at', { ascending: false })
       : supabase.from('purchase_orders').select('*').eq('user_id', auth.user.id).order('created_at', { ascending: false })
-    const [bookingResult, packageResult, orderResult] = await Promise.all([
+    const [bookingResult, packageResult, orderResult, waitlistResult] = await Promise.all([
       supabase.from('bookings').select('*, class:classes(*)').eq('user_id', auth.user.id).order('created_at', { ascending: false }),
       supabase.from('user_packages').select('*').eq('user_id', auth.user.id).order('valid_until', { ascending: true }),
       orderQuery,
+      supabase.from('class_waitlists').select('*').eq('user_id', auth.user.id).eq('status', 'pending').order('position'),
     ])
     if (bookingResult.error) notify(`預約資料載入失敗：${bookingResult.error.message}`, 'error')
     else bookings.value = (bookingResult.data ?? []) as Booking[]
     if (packageResult.error) notify(`票券資料載入失敗：${packageResult.error.message}`, 'error')
     else packages.value = (packageResult.data ?? []) as UserPackage[]
     if (!orderResult.error) orders.value = (orderResult.data ?? []) as PurchaseOrder[]
+    if (!waitlistResult.error) {
+      waitlists.value = (waitlistResult.data ?? []) as WaitlistEntry[]
+      waitlistedClassIds.value = waitlists.value.map((entry) => entry.class_id)
+    }
     loading.value = false
   }
   async function bookClass(item: YogaClass) {
@@ -101,10 +107,16 @@ export const useBookingStore = defineStore('booking', () => {
     }
     loading.value = false; notify(`已成功預約「${item.title}」！`); return true
   }
-  function joinWaitlist(item: YogaClass) {
+  async function joinWaitlist(item: YogaClass) {
     const auth = useAuthStore()
     if (!auth.isAuthenticated) { notify('請先登入後再加入候補名單。', 'error'); return false }
-    if (!waitlistedClassIds.value.includes(item.id)) waitlistedClassIds.value.push(item.id)
+    if (waitlistedClassIds.value.includes(item.id)) { notify('您已在這堂課的候補名單中。', 'error'); return false }
+    if (supabase) {
+      const { data, error } = await supabase.rpc('join_class_waitlist', { p_class_id: item.id } as never) as unknown as { data: WaitlistEntry | null; error: { message: string } | null }
+      if (error) { notify(error.message, 'error'); return false }
+      if (data) waitlists.value.push(data)
+    }
+    waitlistedClassIds.value.push(item.id)
     notify(`已加入「${item.title}」候補名單，釋出名額時會通知您。`)
     return true
   }
@@ -247,6 +259,10 @@ export const useBookingStore = defineStore('booking', () => {
       }
     }
     booking.status = late ? 'late_cancelled' : 'cancelled'
+    if (supabase) {
+      await loadUserData()
+      await loadSchedule()
+    }
     notify(late ? '已通知老師請假，本堂點數依規章扣除。' : '預約已取消，堂數已退回。')
     return true
   }
@@ -275,5 +291,5 @@ export const useBookingStore = defineStore('booking', () => {
     return { booking, class: booking.class }
   }
   function clearToast() { toast.value = null }
-  return { classes, plans, bookings, packages, orders, pendingOrders, loading, toast, availableCredits, activeBookings, pastBookings, waitlistedClassIds, attendance, loadSchedule, loadPurchasePlans, loadUserData, bookClass, joinWaitlist, cancelBooking, checkInBooking, markAttendance, submitPurchase, createClass, updateClass, createRecurringClasses, approveOrder, sharePackage, notify, clearToast }
+  return { classes, plans, bookings, packages, orders, pendingOrders, loading, toast, availableCredits, activeBookings, pastBookings, waitlistedClassIds, waitlists, attendance, loadSchedule, loadPurchasePlans, loadUserData, bookClass, joinWaitlist, cancelBooking, checkInBooking, markAttendance, submitPurchase, createClass, updateClass, createRecurringClasses, approveOrder, sharePackage, notify, clearToast }
 })
