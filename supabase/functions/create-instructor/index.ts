@@ -18,7 +18,7 @@ Deno.serve(async (request) => {
     const payload = await request.json()
     if (!payload.email || !payload.password || !payload.full_name || !payload.phone) throw new Error('請完整填寫老師資料')
     if (payload.password.length < 6) throw new Error('初始密碼至少需要 6 碼')
-    const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+    const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SERVICE_ROLE_KEY')!)
     const { data: created, error } = await admin.auth.admin.createUser({ email: payload.email.trim(), password: payload.password, email_confirm: true, user_metadata: { full_name: payload.full_name, phone: payload.phone } })
     if (error || !created.user) throw error ?? new Error('建立老師帳號失敗')
     const { error: profileError } = await admin.from('profiles').upsert({ id: created.user.id, email: payload.email.trim(), full_name: payload.full_name.trim(), phone: payload.phone.trim(), role: 'instructor', is_instructor: true, is_active: payload.is_active !== false })
