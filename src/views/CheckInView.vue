@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { Html5Qrcode } from 'html5-qrcode'
 import { Check, ClipboardCheck, QrCode, UserCheck, Users, X } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { useBookingStore } from '../stores/bookingStore'
 import { formatTaiwanDateTime } from '../utils/date'
 import { useAuthStore } from '../stores/authStore'
+import { supabase } from '../services/supabase'
 import type { AttendanceRecord } from '../types/database'
 
 const store = useBookingStore()
@@ -16,13 +17,32 @@ const scanning = ref(false)
 const scannerError = ref('')
 const success = ref<{ title: string; instructor?: string } | null>(null)
 let scanner: Html5Qrcode | null = null
-const todayClasses = computed(() => store.classes.filter((item) => new Date(item.start_time).toDateString() === new Date().toDateString()))
-const students = ['林小瑜', '陳怡君', '王品涵']
-const studentBookingId = (classId: string, student: string) => `${classId}-${student}`
+const todayKey = () => formatTaiwanDateTime(new Date().toISOString()).slice(0, 10)
+const todayClasses = computed(() => store.classes.filter((item) => formatTaiwanDateTime(item.start_time).slice(0, 10) === todayKey()))
+const classStudents = ref<Record<string, Array<{ bookingId: string; name: string }>>>({})
 const attendanceFor = (id: string) => store.attendance.find((item) => item.booking_id === id)?.status
 
-function markStudent(classId: string, student: string, status: AttendanceRecord['status']) {
-  store.markAttendance(studentBookingId(classId, student), status)
+async function loadTodayBookings() {
+  if (!supabase || !auth.isInstructor) return
+  const { data, error } = await supabase
+    .from('bookings')
+    .select('id,class_id,user_id,status,profile:profiles(full_name)')
+    .in('status', ['confirmed', 'attended', 'no_show'])
+  if (error) {
+    store.notify(`今日預約名單載入失敗：${error.message}`, 'error')
+    return
+  }
+  const result: Record<string, Array<{ bookingId: string; name: string }>> = {}
+  for (const item of (data ?? []) as Array<{ id: string; class_id: string; profile?: { full_name?: string | null } | null }>) {
+    const list = result[item.class_id] ?? []
+    list.push({ bookingId: item.id, name: item.profile?.full_name || '未設定姓名' })
+    result[item.class_id] = list
+  }
+  classStudents.value = result
+}
+
+function markStudent(bookingId: string, status: AttendanceRecord['status']) {
+  store.markAttendance(bookingId, status)
 }
 
 function parseToken(value: string): string | null {
@@ -76,6 +96,10 @@ async function startScanner() {
   }
 }
 
+onMounted(async () => {
+  await store.loadSchedule()
+  await loadTodayBookings()
+})
 onUnmounted(() => { void stopScanner() })
 </script>
 
@@ -98,7 +122,7 @@ onUnmounted(() => { void stopScanner() })
     </template>
     <template v-else>
       <div class="mb-4 flex items-center justify-between"><div><h2 class="font-display text-xl">今日課程</h2><p class="mt-1 text-xs text-stone-400">即時更新出席與缺席狀態</p></div><span class="rounded-full bg-[#efeff7] px-3 py-1 text-xs text-sage">{{ store.attendance.filter((item) => item.status === 'attended').length }} 人已到</span></div>
-      <div class="space-y-4"><article v-for="item in todayClasses" :key="item.id" class="rounded-3xl border border-sand bg-white p-4"><div class="mb-4 flex items-center justify-between"><div><h3 class="font-semibold">{{ item.title }}</h3><p class="mt-1 text-xs text-stone-400">{{ formatTaiwanDateTime(item.start_time) }} · {{ item.room }}</p></div><ClipboardCheck :size="20" class="text-sage" /></div><div class="space-y-2"><div v-for="student in students" :key="student" class="flex items-center justify-between rounded-2xl bg-[#faf9f5] px-3 py-2.5"><span class="text-sm">{{ student }}</span><span class="flex gap-1"><button class="rounded-lg px-2 py-1 text-[11px]" :class="attendanceFor(studentBookingId(item.id, student)) === 'attended' ? 'bg-sage text-white' : 'bg-[#e8f0e9] text-sage'" @click="markStudent(item.id, student, 'attended')">出席</button><button class="rounded-lg px-2 py-1 text-[11px]" :class="attendanceFor(studentBookingId(item.id, student)) === 'no_show' ? 'bg-clay text-white' : 'bg-[#f8ece8] text-clay'" @click="markStudent(item.id, student, 'no_show')">缺席</button></span></div></div></article></div>
+      <div class="space-y-4"><article v-for="item in todayClasses" :key="item.id" class="rounded-3xl border border-sand bg-white p-4"><div class="mb-4 flex items-center justify-between"><div><h3 class="font-semibold">{{ item.title }}</h3><p class="mt-1 text-xs text-stone-400">{{ formatTaiwanDateTime(item.start_time) }} · {{ item.room }}</p></div><ClipboardCheck :size="20" class="text-sage" /></div><div class="space-y-2"><div v-for="student in (classStudents[item.id] ?? [])" :key="student.bookingId" class="flex items-center justify-between rounded-2xl bg-[#faf9f5] px-3 py-2.5"><span class="text-sm">{{ student.name }}</span><span class="flex gap-1"><button class="rounded-lg px-2 py-1 text-[11px]" :class="attendanceFor(student.bookingId) === 'attended' ? 'bg-sage text-white' : 'bg-[#e8f0e9] text-sage'" @click="markStudent(student.bookingId, 'attended')">出席</button><button class="rounded-lg px-2 py-1 text-[11px]" :class="attendanceFor(student.bookingId) === 'no_show' ? 'bg-clay text-white' : 'bg-[#f8ece8] text-clay'" @click="markStudent(student.bookingId, 'no_show')">缺席</button></span></div><p v-if="!(classStudents[item.id] ?? []).length" class="rounded-2xl bg-[#faf9f5] px-3 py-3 text-xs text-stone-400">目前沒有已確認預約的學員。</p></div></article></div>
       <div v-if="!todayClasses.length" class="rounded-3xl border border-dashed border-sand py-10 text-center text-sm text-stone-400">今天沒有您的帶課。</div>
     </template>
     <div v-if="store.toast" class="fixed left-1/2 top-5 z-40 w-[calc(100%-2rem)] max-w-[398px] -translate-x-1/2 rounded-2xl bg-ink px-4 py-3 text-sm text-white shadow-lg">{{ store.toast.message }}</div>
