@@ -230,8 +230,8 @@ export const useBookingStore = defineStore('booking', () => {
   async function cancelBooking(booking: Booking, late = false) {
     const auth = useAuthStore()
     if (!auth.isAuthenticated) { notify('請先登入後再管理預約。', 'error'); return false }
-    const hoursUntilClass = (new Date(booking.class?.start_time ?? 0).getTime() - Date.now()) / 3600000
-    if (!late && hoursUntilClass < 3) {
+    const minutesUntilClass = (new Date(booking.class?.start_time ?? 0).getTime() - Date.now()) / 60000
+    if (!late && minutesUntilClass < 30) {
       notify('已逾可取消時限，請使用逾期請假。', 'error')
       return false
     }

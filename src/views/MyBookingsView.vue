@@ -18,7 +18,7 @@ const statusText = (booking: Booking) => ({ confirmed: '已預約', attended: '�
 
 async function cancel(booking: Booking) {
   const remaining = hoursLeft(booking)
-  if (remaining >= 3) {
+  if (remaining >= 0.5) {
     if (window.confirm(`確定取消此預約？距開課尚有 ${remaining.toFixed(1)} 小時，取消後堂數將立即全額退還回您的點數包。`)) await store.cancelBooking(booking)
   } else if (window.confirm('此操作僅通知授課老師您無法出席，但該堂課點數將正常扣除，無法退還。確定要逾期請假嗎？')) {
     await store.cancelBooking(booking, true)
@@ -33,7 +33,7 @@ async function cancel(booking: Booking) {
       <article v-for="booking in list" :key="booking.id" class="rounded-3xl border border-sand bg-white p-4">
         <div class="flex items-start justify-between"><div><p class="mb-1 text-[11px] text-clay">{{ formatDate(booking.class!.start_time) }}</p><h2 class="font-semibold">{{ booking.class!.title }}</h2></div><span class="rounded-full bg-[#efeff7] px-2.5 py-1 text-[10px] text-sage">{{ statusText(booking) }}</span></div>
         <div class="mt-3 grid grid-cols-2 gap-2 text-[11px] text-stone-500"><span><Clock3 :size="13" class="mr-1 inline" />{{ formatTime(booking.class!.start_time) }} - {{ formatTime(booking.class!.end_time) }}</span><span><MapPin :size="13" class="mr-1 inline" />{{ booking.class!.room }}</span><span><CalendarDays :size="13" class="mr-1 inline" />{{ booking.class!.instructor_name }}</span></div>
-        <template v-if="tab === 'upcoming' && booking.status === 'confirmed'"><p v-if="hoursLeft(booking) < 3" class="mt-3 rounded-xl bg-[#f8ece8] px-3 py-2 text-[11px] leading-relaxed text-clay">已逾可取消時限（課前 3 小時內）。未提前 3 小時取消或未出席，將扣除該堂課點數，不予歸還。</p><button class="mt-3 w-full rounded-xl border border-sand py-2.5 text-xs" :class="hoursLeft(booking) < 3 ? 'border-clay text-clay' : 'text-stone-500'" @click="cancel(booking)">{{ hoursLeft(booking) < 3 ? '逾期請假（不退點）' : '取消預約（全額退點）' }}</button></template>
+        <template v-if="tab === 'upcoming' && booking.status === 'confirmed'"><p v-if="hoursLeft(booking) < 0.5" class="mt-3 rounded-xl bg-[#f8ece8] px-3 py-2 text-[11px] leading-relaxed text-clay">已逾可取消時限（課前 30 分鐘內）。未提前 30 分鐘取消或未出席，將扣除該堂課點數，不予歸還。</p><button class="mt-3 w-full rounded-xl border border-sand py-2.5 text-xs" :class="hoursLeft(booking) < 0.5 ? 'border-clay text-clay' : 'text-stone-500'" @click="cancel(booking)">{{ hoursLeft(booking) < 0.5 ? '逾期請假（不退點）' : '取消預約（全額退點）' }}</button></template>
       </article>
     </div>
     <div v-else class="rounded-3xl border border-dashed border-sand py-12 text-center text-sm text-stone-400">{{ tab === 'upcoming' ? '目前沒有即將到來的預約。' : '目前沒有歷史紀錄。' }}</div>
