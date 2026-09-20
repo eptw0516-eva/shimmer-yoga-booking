@@ -85,6 +85,12 @@ export const useBookingStore = defineStore('booking', () => {
       bookings.value = [{ ...data, class: { ...item, booked_count: item.booked_count + 1 } }, ...bookings.value]
       item.booked_count += 1
       await loadUserData()
+      await loadSchedule()
+      if (!bookings.value.some((booking) => booking.id === data.id)) {
+        notify('預約已建立，但重新載入預約資料失敗，請重新整理確認。', 'error')
+        loading.value = false
+        return false
+      }
     } else {
       item.booked_count += 1
       packages.value[0].remaining_credits -= 1

@@ -8,18 +8,15 @@ import type { Profile } from '../../types/database'
 const store = useBookingStore()
 const profiles = ref<Profile[]>([])
 const memberPackages = ref<Record<string, Array<{ package_name?: string; remaining_credits: number; total_credits: number; valid_until: string; status: string }>>>({})
-const demoProfiles = ref<Profile[]>([
-  { id: 'demo-member', role: 'member', full_name: '林小瑜', phone: '0912345678', line_user_id: null, birth_date: '1992-04-18', is_instructor: false, is_active: true, created_at: '2026-01-01' },
-  { id: 'demo-instructor', role: 'member', full_name: '林安老師', phone: '0922333444', line_user_id: null, birth_date: null, is_instructor: true, is_active: true, created_at: '2026-01-01' },
-])
 const editing = ref<Profile | null>(null)
 const showTeacherForm = ref(false)
 const creatingTeacher = ref(false)
 const teacherForm = ref({ full_name: '', email: '', phone: '', password: '' })
 
 async function loadProfiles() {
-  if (!supabase) { profiles.value = demoProfiles.value; return }
-  await supabase.rpc('sync_auth_profiles' as never)
+  if (!supabase) { profiles.value = []; store.notify('Supabase 尚未設定，無法載入真實會員資料。', 'error'); return }
+  const { error: syncError } = await supabase.rpc('sync_auth_profiles' as never)
+  if (syncError) { store.notify(`會員同步失敗：${syncError.message}`, 'error'); return }
   const [profileResult, packageResult] = await Promise.all([
     supabase.from('profiles').select('*').order('created_at'),
     supabase.from('user_packages').select('user_id,package_name,remaining_credits,total_credits,valid_until,status').order('valid_until', { ascending: true }) as unknown as Promise<{ data: Array<{ user_id: string; package_name?: string; remaining_credits: number; total_credits: number; valid_until: string; status: string }> | null; error: { message: string } | null }>,
@@ -61,7 +58,14 @@ async function createTeacher() {
   try {
     const { data, error } = await supabase.functions.invoke('create-instructor', { body: teacherForm.value })
     if (error || data?.error) {
-      store.notify(data?.error ?? error?.message ?? '建立老師失敗，請確認 Edge Function 已部署。', 'error')
+      let detail = data?.error ?? error?.message ?? '建立老師失敗，請確認 Edge Function 已部署。'
+      if (error && 'context' in error && error.context instanceof Response) {
+        try {
+          const body = await error.context.json() as { error?: string }
+          detail = body.error ?? detail
+        } catch { /* Supabase may return a non-JSON edge error. */ }
+      }
+      store.notify(detail, 'error')
       return
     }
     store.notify('老師帳號已建立，可以在新增課程時選擇。')

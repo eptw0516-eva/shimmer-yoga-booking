@@ -10,6 +10,7 @@ export const useAuthStore = defineStore('auth', () => {
   const profile = ref<Profile | null>(null)
   const loading = ref(false)
   const initialized = ref(false)
+  let authSubscription: { unsubscribe: () => void } | null = null
   const isAuthenticated = computed(() => Boolean(user.value))
   const isAdmin = computed(() => profile.value?.role === 'admin')
   const isInstructor = computed(() => Boolean(profile.value?.is_instructor || profile.value?.role === 'instructor' || profile.value?.role === 'admin'))
@@ -24,11 +25,16 @@ export const useAuthStore = defineStore('auth', () => {
       if (error) throw error
       user.value = currentUser ? { id: currentUser.id, email: currentUser.email } : null
       if (currentUser) await loadProfile(currentUser.id)
-      supabase.auth.onAuthStateChange((_event, session) => {
+      authSubscription?.unsubscribe()
+      const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
         user.value = session?.user ? { id: session.user.id, email: session.user.email } : null
         if (session?.user) void loadProfile(session.user.id)
-        else profile.value = null
+        else {
+          profile.value = null
+          user.value = null
+        }
       })
+      authSubscription = authListener.subscription
     } catch {
       user.value = null
       profile.value = null
@@ -115,6 +121,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (supabase) await supabase.auth.signOut()
     user.value = null
     profile.value = null
+    initialized.value = true
   }
 
   return { user, profile, loading, initialized, isAuthenticated, isAdmin, isInstructor, load, loadProfile, signIn, signUp, resetPassword, updatePassword, signInWithGoogle, signOut }
