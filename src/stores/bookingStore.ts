@@ -192,12 +192,20 @@ export const useBookingStore = defineStore('booking', () => {
     notify(`已確認「${order.plan_name}」入帳，票券已建立。`)
     return true
   }
-  function sharePackage(packageId: string, phone: string) {
+  async function sharePackage(packageId: string, phone: string) {
     const normalized = phone.replace(/\s/g, '')
     if (!/^09\d{8}$/.test(normalized)) { notify('請輸入有效的台灣手機號碼。', 'error'); return false }
     const target = packages.value.find((item) => item.id === packageId)
     if (!target) { notify('找不到這個票券。', 'error'); return false }
-    target.shared_with_phones = [...new Set([...(target.shared_with_phones ?? []), normalized])]
+    if (!supabase) { notify('目前無法連線到資料庫，請稍後再試。', 'error'); return false }
+    const sharedWithPhones = [...new Set([...(target.shared_with_phones ?? []), normalized])]
+    const packageTable = supabase.from('user_packages') as unknown as { update: (values: { shared_with_phones: string[] }) => { eq: (column: string, value: string) => Promise<{ error: { message: string } | null }> } }
+    const { error } = await packageTable.update({ shared_with_phones: sharedWithPhones }).eq('id', packageId)
+    if (error) {
+      notify(`共享設定儲存失敗：${error.message}`, 'error')
+      return false
+    }
+    target.shared_with_phones = sharedWithPhones
     notify(`已新增共享親友 ${normalized}。`)
     return true
   }

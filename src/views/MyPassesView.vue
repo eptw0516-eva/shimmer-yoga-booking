@@ -9,8 +9,8 @@ const formatTime = (value: string) => new Intl.DateTimeFormat('zh-TW', { hour: '
 const upcoming = computed(() => store.activeBookings.filter((booking) => booking.class))
 const sharingPackage = ref<import('../types/database').UserPackage | null>(null)
 const friendPhone = ref('')
-function addFriend() {
-  if (sharingPackage.value && store.sharePackage(sharingPackage.value.id, friendPhone.value)) {
+async function addFriend() {
+  if (sharingPackage.value && await store.sharePackage(sharingPackage.value.id, friendPhone.value)) {
     friendPhone.value = ''
     sharingPackage.value = null
   }
