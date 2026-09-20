@@ -4,6 +4,7 @@ import { CalendarPlus, ChevronRight, Minus, Plus, Search, Settings2, UserRound, 
 import { useRouter } from 'vue-router'
 import { supabase } from '../services/supabase'
 import { useBookingStore } from '../stores/bookingStore'
+import { formatTaiwanDate, formatTaiwanTime, isoToTaiwanInput, taiwanDateAndTimeToIso, taiwanInputToIso } from '../utils/date'
 import type { CourseType, Profile, YogaClass } from '../types/database'
 
 const store = useBookingStore()
@@ -18,10 +19,10 @@ const editingClass = ref<YogaClass | null>(null)
 const classForm = ref({ title: '', instructor_id: '', course_type: '常態課' as CourseType, room: 'A 教室', start_time: '', end_time: '', capacity: 12, level: '初階' as YogaClass['level'], description: '', instructor_bio: '', weekday: 1, start_date: '', end_date: '' })
 const timeOptions = Array.from({ length: 48 }, (_, index) => `${String(Math.floor(index / 2)).padStart(2, '0')}:${index % 2 ? '30' : '00'}`)
 const selectedInstructor = computed(() => instructors.value.find((item) => item.id === classForm.value.instructor_id))
-const formatClassDate = (value: string) => new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric', weekday: 'short' }).format(new Date(value))
-const formatClassTime = (value: string) => new Intl.DateTimeFormat('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(value))
+const formatClassDate = formatTaiwanDate
+const formatClassTime = formatTaiwanTime
 const adjust = (index: number, amount: number) => { students.value[index].credits = Math.max(0, students.value[index].credits + amount); store.notify(amount > 0 ? '已贈送 1 堂課給學員。' : '已扣除 1 堂課。') }
-function localDateTime(date: string, time: string) { return new Date(`${date}T${time}`).toISOString() }
+function localDateTime(date: string, time: string) { return taiwanDateAndTimeToIso(date, time) }
 async function addClass() {
   const form = classForm.value
   if (!form.title || !form.instructor_id || !form.start_date || !form.end_date || !form.start_time || !form.end_time) { store.notify('請完整填寫課程、老師、日期與時間。', 'error'); return }
@@ -72,12 +73,12 @@ async function loadClassParticipants() {
   }
   classParticipants.value = result
 }
-function editClass(item: YogaClass) { editingClass.value = { ...item, start_time: item.start_time.slice(0, 16), end_time: item.end_time.slice(0, 16) } }
+function editClass(item: YogaClass) { editingClass.value = { ...item, start_time: isoToTaiwanInput(item.start_time), end_time: isoToTaiwanInput(item.end_time) } }
 async function saveClass() {
   if (!editingClass.value) return
   if (new Date(editingClass.value.end_time) <= new Date(editingClass.value.start_time)) { store.notify('結束時間必須晚於開始時間。', 'error'); return }
   if (editingClass.value.capacity < editingClass.value.booked_count) { store.notify('人數上限不可低於目前已預約人數。', 'error'); return }
-  if (await store.updateClass(editingClass.value.id, { title: editingClass.value.title, instructor_id: editingClass.value.instructor_id, instructor_name: editingClass.value.instructor_name, instructor_bio: editingClass.value.instructor_bio, course_type: editingClass.value.course_type, room: editingClass.value.room, level: editingClass.value.level, description: editingClass.value.description, start_time: new Date(editingClass.value.start_time).toISOString(), end_time: new Date(editingClass.value.end_time).toISOString(), capacity: editingClass.value.capacity })) editingClass.value = null
+  if (await store.updateClass(editingClass.value.id, { title: editingClass.value.title, instructor_id: editingClass.value.instructor_id, instructor_name: editingClass.value.instructor_name, instructor_bio: editingClass.value.instructor_bio, course_type: editingClass.value.course_type, room: editingClass.value.room, level: editingClass.value.level, description: editingClass.value.description, start_time: taiwanInputToIso(editingClass.value.start_time), end_time: taiwanInputToIso(editingClass.value.end_time), capacity: editingClass.value.capacity })) editingClass.value = null
 }
 onMounted(async () => { await loadInstructors(); await store.loadSchedule(); await loadStudents(); await loadClassParticipants() })
 </script>

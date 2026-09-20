@@ -2,6 +2,7 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { supabase } from '../services/supabase'
 import { useAuthStore } from './authStore'
+import { formatTaiwanTime, taiwanDateAndTimeToIso } from '../utils/date'
 import type { AttendanceRecord, Booking, CheckInResult, PaymentMethod, PurchaseOrder, PurchasePlan, PurchasePlanType, UserPackage, WaitlistEntry, YogaClass } from '../types/database'
 
 const today = new Date()
@@ -181,8 +182,8 @@ export const useBookingStore = defineStore('booking', () => {
     return true
   }
   async function createRecurringClasses(input: Omit<YogaClass, 'id' | 'booked_count'>, weekday: number, startDate: string, endDate: string) {
-    const first = new Date(`${startDate}T00:00:00`)
-    const last = new Date(`${endDate}T00:00:00`)
+    const first = new Date(`${startDate}T00:00:00Z`)
+    const last = new Date(`${endDate}T00:00:00Z`)
     if (Number.isNaN(first.getTime()) || Number.isNaN(last.getTime()) || first > last) {
       notify('請確認開課日期區間。', 'error')
       return false
@@ -190,17 +191,16 @@ export const useBookingStore = defineStore('booking', () => {
     const dates: Date[] = []
     const cursor = new Date(first)
     while (cursor <= last) {
-      if (cursor.getDay() === weekday) dates.push(new Date(cursor))
+      if (cursor.getUTCDay() === weekday) dates.push(new Date(cursor))
       cursor.setDate(cursor.getDate() + 1)
     }
     if (!dates.length) { notify('日期區間內沒有符合的星期。', 'error'); return false }
     loading.value = true
     for (const date of dates) {
-      const start = new Date(`${startDate}T${new Date(input.start_time).toTimeString().slice(0, 5)}`)
-      start.setFullYear(date.getFullYear(), date.getMonth(), date.getDate())
-      const end = new Date(`${endDate}T${new Date(input.end_time).toTimeString().slice(0, 5)}`)
-      end.setFullYear(date.getFullYear(), date.getMonth(), date.getDate())
-      const success = await createClass({ ...input, start_time: start.toISOString(), end_time: end.toISOString() })
+      const dateValue = date.toISOString().slice(0, 10)
+      const start = taiwanDateAndTimeToIso(dateValue, formatTaiwanTime(input.start_time))
+      const end = taiwanDateAndTimeToIso(dateValue, formatTaiwanTime(input.end_time))
+      const success = await createClass({ ...input, start_time: start, end_time: end })
       if (!success) { loading.value = false; return false }
     }
     loading.value = false
