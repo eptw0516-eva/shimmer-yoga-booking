@@ -8,6 +8,7 @@ import AdminOrdersView from '../views/AdminOrdersView.vue'
 import MyBookingsView from '../views/MyBookingsView.vue'
 import QrCodeDisplayView from '../views/admin/QrCodeDisplayView.vue'
 import AdminMembersView from '../views/admin/AdminMembersView.vue'
+import AdminPlansView from '../views/admin/AdminPlansView.vue'
 import AuthView from '../views/AuthView.vue'
 import { useAuthStore } from '../stores/authStore'
 import { isSupabaseConfigured, supabase } from '../services/supabase'
@@ -26,6 +27,7 @@ const router = createRouter({
     { path: '/admin/orders', component: AdminOrdersView, meta: { title: '購課核帳', requiresAuth: true, adminOnly: true } },
     { path: '/admin/check-in-qr', component: QrCodeDisplayView, meta: { title: '教室簽到 QR Code', staff: true, requiresAuth: true } },
     { path: '/admin/members', component: AdminMembersView, meta: { title: '會員與角色管理', requiresAuth: true, adminOnly: true } },
+    { path: '/admin/plans', component: AdminPlansView, meta: { title: '購課方案管理', requiresAuth: true, adminOnly: true } },
   ],
   scrollBehavior: () => ({ top: 0 }),
 })
