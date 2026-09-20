@@ -43,10 +43,6 @@ async function saveNewPassword() {
   if (result.error) error.value = result.error.message
   else { message.value = '密碼已更新，請重新登入。'; await auth.signOut(); await router.replace('/login') }
 }
-async function google() {
-  const result = await auth.signInWithGoogle()
-  if (result.error) error.value = result.error.message
-}
 onMounted(() => { if (auth.isAuthenticated && !resetting.value) void router.push('/') })
 </script>
 
@@ -55,7 +51,7 @@ onMounted(() => { if (auth.isAuthenticated && !resetting.value) void router.push
     <section class="w-full rounded-[28px] border border-sand bg-white p-6 shadow-sm">
       <p class="mb-1 text-xs tracking-[.18em] text-clay">SHIMMER YOGA MEMBER</p>
       <h1 class="mb-2 font-display text-2xl">{{ resetting ? '設定新密碼' : register ? '建立學員帳號' : '歡迎回到微光' }}</h1>
-      <p class="mb-5 text-xs leading-relaxed text-stone-500">{{ resetting ? '請輸入新的登入密碼。' : register ? '填寫基本資料，之後可使用 Email 或 Google 快速登入。' : '登入後即可預約、簽到與管理您的票券。' }}</p>
+      <p class="mb-5 text-xs leading-relaxed text-stone-500">{{ resetting ? '請輸入新的登入密碼。' : register ? '填寫基本資料，之後即可使用 Email 登入。' : '登入後即可預約、簽到與管理您的票券。' }}</p>
       <div v-if="resetting" class="space-y-3">
         <label class="relative block"><LockKeyhole :size="16" class="absolute left-3 top-3 text-stone-400" /><input v-model="newPassword" required type="password" minlength="6" placeholder="新密碼（至少 6 碼）" class="w-full rounded-xl border border-sand py-2.5 pl-9 pr-3 text-sm" /></label>
       </div>
@@ -69,7 +65,6 @@ onMounted(() => { if (auth.isAuthenticated && !resetting.value) void router.push
       <p v-if="error" class="mt-3 rounded-xl bg-[#f8ece8] px-3 py-2 text-xs text-clay">{{ error }}</p><p v-if="message" class="mt-3 rounded-xl bg-[#e8f3e9] px-3 py-2 text-xs text-sage">{{ message }}</p>
       <button class="mt-5 w-full rounded-2xl bg-sage py-3 text-sm font-semibold text-white" :disabled="auth.loading" @click="resetting ? saveNewPassword() : submit()">{{ auth.loading ? '處理中…' : resetting ? '更新密碼' : register ? '註冊帳號' : '登入' }}</button>
       <button v-if="!register && !resetting" class="mt-3 w-full text-xs text-stone-500 underline" @click="forgotPassword">忘記密碼？寄送重設信件</button>
-      <button v-if="!resetting" class="mt-2 w-full rounded-2xl border border-sand bg-white py-3 text-sm font-semibold text-sage" @click="google">使用 Google 快速登入</button>
       <RouterLink v-if="!resetting" :to="register ? '/login' : '/register'" class="mt-4 block text-center text-xs text-stone-500 underline">{{ register ? '已有帳號？前往登入' : '還沒有帳號？立即註冊' }}</RouterLink>
     </section>
   </div>

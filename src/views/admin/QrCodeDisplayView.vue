@@ -5,9 +5,11 @@ import { onMounted, ref } from 'vue'
 import { formatTaiwanDateTime } from '../../utils/date'
 import { useBookingStore } from '../../stores/bookingStore'
 import type { YogaClass } from '../../types/database'
+import { useRoute } from 'vue-router'
 const qrData = JSON.stringify({ studio: 'shimmer_yoga', action: 'checkin', code: 'SHIMMER_CHECKIN_SECRET' })
 const qrImage = ref('')
 const store = useBookingStore()
+const route = useRoute()
 const selectedClassId = ref('')
 const todayClasses = computed(() => store.classes.filter((item) => formatTaiwanDateTime(item.start_time).slice(0, 10) === formatTaiwanDateTime(new Date().toISOString()).slice(0, 10)))
 const selectedClass = computed<YogaClass | undefined>(() => todayClasses.value.find((item) => item.id === selectedClassId.value))
@@ -16,7 +18,7 @@ async function generateQr() {
   if (!selectedClass.value) { qrImage.value = ''; return }
   qrImage.value = await QRCode.toDataURL(JSON.stringify({ studio: 'shimmer_yoga', action: 'checkin', code: 'SHIMMER_CHECKIN_SECRET', class_id: selectedClass.value.id }), { width: 320, margin: 2 })
 }
-onMounted(async () => { await store.loadSchedule(); if (todayClasses.value.length) selectedClassId.value = todayClasses.value[0].id; await generateQr() })
+onMounted(async () => { await store.loadSchedule(); const requestedClassId = typeof route.query.class_id === 'string' ? route.query.class_id : ''; selectedClassId.value = todayClasses.value.some((item) => item.id === requestedClassId) ? requestedClassId : (todayClasses.value[0]?.id ?? ''); await generateQr() })
 </script>
 
 <template>
