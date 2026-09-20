@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { Check, Clock3, Landmark, ReceiptText, UserRound } from 'lucide-vue-next'
 import { useBookingStore } from '../stores/bookingStore'
+import { formatTaiwanDateTime } from '../utils/date'
 import { supabase } from '../services/supabase'
 const store = useBookingStore()
 const memberNames = ref<Record<string, string>>({})
@@ -14,7 +15,7 @@ async function load() {
   memberNames.value = Object.fromEntries((data ?? []).map((profile) => [profile.id, profile.full_name || profile.email || profile.id]))
 }
 onMounted(() => void load())
-const formatDate = (value: string) => new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value))
+const formatDate = formatTaiwanDateTime
 const formatPrice = (value: number) => new Intl.NumberFormat('zh-TW').format(value)
 </script>
 

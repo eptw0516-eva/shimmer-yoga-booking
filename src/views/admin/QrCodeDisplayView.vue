@@ -2,9 +2,10 @@
 import { computed } from 'vue'
 import QRCode from 'qrcode'
 import { onMounted, ref } from 'vue'
+import { formatTaiwanDateTime } from '../../utils/date'
 const qrData = JSON.stringify({ studio: 'shimmer_yoga', action: 'checkin', code: 'SHIMMER_CHECKIN_SECRET' })
 const qrImage = ref('')
-const today = computed(() => new Intl.DateTimeFormat('zh-TW', { dateStyle: 'full' }).format(new Date()))
+const today = computed(() => formatTaiwanDateTime(new Date().toISOString()))
 onMounted(async () => { qrImage.value = await QRCode.toDataURL(qrData, { width: 320, margin: 2 }) })
 </script>
 

@@ -5,6 +5,7 @@ import { useBookingStore } from '../stores/bookingStore'
 import { useAuthStore } from '../stores/authStore'
 import { useRouter } from 'vue-router'
 import type { YogaClass } from '../types/database'
+import { formatTaiwanDateTime } from '../utils/date'
 
 const store = useBookingStore()
 const auth = useAuthStore()
@@ -28,7 +29,7 @@ const dayClasses = (date: Date) => store.classes.filter((item) => {
   return value.getFullYear() === date.getFullYear() && value.getMonth() === date.getMonth() && value.getDate() === date.getDate()
 }).sort((a, b) => a.start_time.localeCompare(b.start_time))
 const selectedClasses = computed(() => dayClasses(selectedDate.value))
-const formatTime = (value: string) => new Intl.DateTimeFormat('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(value))
+const formatTime = (value: string) => formatTaiwanDateTime(value)
 const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-TW', { month: 'long', day: 'numeric', weekday: 'short' }).format(date)
 const isBooked = (item: YogaClass) => store.activeBookings.some((booking) => booking.class_id === item.id)
 const isClosed = (item: YogaClass) => new Date(item.start_time).getTime() - Date.now() <= 10 * 60 * 1000
@@ -78,7 +79,7 @@ onMounted(async () => { await store.loadSchedule(); if (auth.isAuthenticated) aw
       </article>
     </div>
     <div v-else class="rounded-3xl border border-dashed border-sand py-12 text-center text-sm text-stone-400">這天還沒有排課，換一天看看吧。</div>
-    <Teleport to="body"><div v-if="pending" class="fixed inset-0 z-30 flex items-end justify-center bg-ink/30 p-4 sm:items-center"><div class="w-full max-w-[398px] rounded-[28px] bg-cream p-6 shadow-xl"><div class="mb-5 flex items-center justify-between"><h3 class="font-display text-xl">確認預約</h3><button class="rounded-full bg-sand p-2" @click="pending = null"><X :size="16" /></button></div><p class="mb-1 text-sm font-semibold">{{ pending.title }}</p><p class="mb-5 text-xs text-stone-500">{{ formatDate(new Date(pending.start_time)) }} · {{ formatTime(pending.start_time) }} · {{ pending.instructor_name }}</p><div class="mb-5 flex items-center justify-between rounded-2xl bg-[#eef3ee] p-4"><span class="text-xs text-stone-500">預約後可用堂數</span><strong class="text-xl text-sage">{{ Math.max(0, store.availableCredits - 1) }} <small class="text-xs font-normal">堂</small></strong></div><button class="w-full rounded-2xl bg-sage py-3 text-sm font-semibold text-white" :disabled="store.loading" @click="confirmBooking">{{ store.loading ? '處理中…' : '確認預約' }}</button></div></div></Teleport>
+    <Teleport to="body"><div v-if="pending" class="fixed inset-0 z-30 flex items-end justify-center bg-ink/30 p-4 sm:items-center"><div class="w-full max-w-[398px] rounded-[28px] bg-cream p-6 shadow-xl"><div class="mb-5 flex items-center justify-between"><h3 class="font-display text-xl">確認預約</h3><button class="rounded-full bg-sand p-2" @click="pending = null"><X :size="16" /></button></div><p class="mb-1 text-sm font-semibold">{{ pending.title }}</p><p class="mb-5 text-xs text-stone-500">{{ formatTaiwanDateTime(pending.start_time) }} · {{ pending.instructor_name }}</p><div class="mb-5 flex items-center justify-between rounded-2xl bg-[#eef3ee] p-4"><span class="text-xs text-stone-500">預約後可用堂數</span><strong class="text-xl text-sage">{{ Math.max(0, store.availableCredits - 1) }} <small class="text-xs font-normal">堂</small></strong></div><button class="w-full rounded-2xl bg-sage py-3 text-sm font-semibold text-white" :disabled="store.loading" @click="confirmBooking">{{ store.loading ? '處理中…' : '確認預約' }}</button></div></div></Teleport>
     <div v-if="store.toast" class="fixed left-1/2 top-5 z-40 w-[calc(100%-2rem)] max-w-[398px] -translate-x-1/2 rounded-2xl bg-ink px-4 py-3 text-sm text-white shadow-lg">{{ store.toast.message }}</div>
   </div>
 </template>

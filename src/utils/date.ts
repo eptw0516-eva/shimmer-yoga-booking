@@ -1,4 +1,4 @@
-const taiwanDateTimeFormatter = new Intl.DateTimeFormat('zh-TW', {
+const taiwanDateTimeFormatter = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'Asia/Taipei',
   year: 'numeric',
   month: '2-digit',
@@ -24,7 +24,12 @@ const taiwanTimeFormatter = new Intl.DateTimeFormat('zh-TW', {
 })
 
 export function formatTaiwanDateTime(value: string) {
-  return taiwanDateTimeFormatter.format(new Date(value))
+  const parts = taiwanDateTimeFormatter.formatToParts(new Date(value))
+    .reduce<Record<string, string>>((result, part) => {
+      if (part.type !== 'literal') result[part.type] = part.value
+      return result
+    }, {})
+  return `${parts.year}/${parts.month}/${parts.day} ${parts.hour}:${parts.minute}`
 }
 
 export function formatTaiwanDate(value: string) {
