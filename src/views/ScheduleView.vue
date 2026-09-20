@@ -31,7 +31,7 @@ const selectedClasses = computed(() => dayClasses(selectedDate.value))
 const formatTime = (value: string) => new Intl.DateTimeFormat('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(value))
 const formatDate = (date: Date) => new Intl.DateTimeFormat('zh-TW', { month: 'long', day: 'numeric', weekday: 'short' }).format(date)
 const isBooked = (item: YogaClass) => store.activeBookings.some((booking) => booking.class_id === item.id)
-const isClosed = (item: YogaClass) => new Date(item.start_time).getTime() - Date.now() <= 3 * 60 * 60 * 1000
+const isClosed = (item: YogaClass) => new Date(item.start_time).getTime() - Date.now() <= 10 * 60 * 1000
 const isWaitlisted = (item: YogaClass) => store.waitlistedClassIds.includes(item.id)
 const previousMonth = () => { monthCursor.value = new Date(monthCursor.value.getFullYear(), monthCursor.value.getMonth() - 1, 1) }
 const nextMonth = () => { monthCursor.value = new Date(monthCursor.value.getFullYear(), monthCursor.value.getMonth() + 1, 1) }

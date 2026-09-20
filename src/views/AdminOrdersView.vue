@@ -1,9 +1,19 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { Check, Clock3, Landmark, ReceiptText, UserRound } from 'lucide-vue-next'
 import { useBookingStore } from '../stores/bookingStore'
+import { supabase } from '../services/supabase'
 const store = useBookingStore()
-onMounted(() => void store.loadUserData())
+const memberNames = ref<Record<string, string>>({})
+async function load() {
+  await store.loadUserData()
+  if (!supabase || !store.orders.length) return
+  const ids = [...new Set(store.orders.map((order: import('../types/database').PurchaseOrder) => order.user_id))]
+  const { data, error } = await supabase.from('profiles').select('id,full_name,email').in('id', ids) as unknown as { data: Array<{ id: string; full_name: string; email?: string | null }> | null; error: { message: string } | null }
+  if (error) { store.notify(`學員姓名載入失敗：${error.message}`, 'error'); return }
+  memberNames.value = Object.fromEntries((data ?? []).map((profile) => [profile.id, profile.full_name || profile.email || profile.id]))
+}
+onMounted(() => void load())
 const formatDate = (value: string) => new Intl.DateTimeFormat('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value))
 const formatPrice = (value: number) => new Intl.NumberFormat('zh-TW').format(value)
 </script>
@@ -15,7 +25,7 @@ const formatPrice = (value: number) => new Intl.NumberFormat('zh-TW').format(val
     <div v-if="store.pendingOrders.length" class="space-y-3">
       <article v-for="order in store.pendingOrders" :key="order.id" class="rounded-3xl border border-sand bg-white p-4">
         <div class="flex items-start justify-between"><div><span class="mb-2 inline-flex items-center gap-1 rounded-full bg-[#fff4dc] px-2 py-1 text-[10px] text-[#9c7428]"><Clock3 :size="12" />待管理員核款</span><h3 class="font-semibold">{{ order.plan_name }}</h3></div><strong class="text-sage">NT$ {{ formatPrice(order.amount) }}</strong></div>
-        <div class="mt-3 space-y-1 text-xs text-stone-500"><p><UserRound :size="13" class="mr-1 inline" />學員：{{ order.user_id === 'demo-user' ? '林小瑜' : order.user_id }}</p><p><Landmark :size="13" class="mr-1 inline" />付款：{{ order.payment_method === 'cash' ? '教室現金付款' : `銀行匯款・末五碼 ${order.transfer_last_five}` }}</p><p>申請時間：{{ formatDate(order.created_at) }}</p></div>
+        <div class="mt-3 space-y-1 text-xs text-stone-500"><p><UserRound :size="13" class="mr-1 inline" />學員：{{ memberNames[order.user_id] ?? '載入中…' }}</p><p><Landmark :size="13" class="mr-1 inline" />付款：{{ order.payment_method === 'cash' ? '教室現金付款' : `銀行匯款・末五碼 ${order.transfer_last_five}` }}</p><p>申請時間：{{ formatDate(order.created_at) }}</p></div>
         <button class="mt-4 flex w-full items-center justify-center gap-1 rounded-xl bg-sage py-2.5 text-xs font-semibold text-white" @click="store.approveOrder(order)"><Check :size="15" />確認入帳並建立票券</button>
       </article>
     </div>

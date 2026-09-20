@@ -77,7 +77,7 @@ export const useBookingStore = defineStore('booking', () => {
   async function bookClass(item: YogaClass) {
     const auth = useAuthStore()
     if (!auth.isAuthenticated || !auth.user) { notify('請先登入後再預約。', 'error'); return false }
-    if (new Date(item.start_time).getTime() - Date.now() <= 3 * 60 * 60 * 1000) { notify('此課程已於開課前 3 小時截止預約。', 'error'); return false }
+    if (new Date(item.start_time).getTime() - Date.now() <= 10 * 60 * 1000) { notify('此課程已於開課前 10 分鐘截止預約。', 'error'); return false }
     if (item.booked_count >= item.capacity) { notify('這堂課已額滿，請加入候補名單。', 'error'); return false }
     if (availableCredits.value <= 0) { notify('目前沒有可用堂數，請先購買方案。', 'error'); return false }
     loading.value = true
@@ -150,6 +150,15 @@ export const useBookingStore = defineStore('booking', () => {
       classes.value.push({ ...classInput, id: `class-${Date.now()}`, booked_count: 0 })
     }
     notify(`已新增課程「${classInput.title}」。`)
+    return true
+  }
+  async function updateClass(classId: string, changes: Partial<YogaClass>) {
+    if (!supabase) { notify('目前無法連線到資料庫。', 'error'); return false }
+    const { data, error } = await supabase.from('classes').update(changes as never).eq('id', classId).select().single()
+    if (error) { notify(`課程更新失敗：${error.message}`, 'error'); return false }
+    const index = classes.value.findIndex((item) => item.id === classId)
+    if (index >= 0 && data) classes.value[index] = data as YogaClass
+    notify('單堂課程已更新。')
     return true
   }
   async function createRecurringClasses(input: Omit<YogaClass, 'id' | 'booked_count'>, weekday: number, startDate: string, endDate: string) {
@@ -266,5 +275,5 @@ export const useBookingStore = defineStore('booking', () => {
     return { booking, class: booking.class }
   }
   function clearToast() { toast.value = null }
-  return { classes, plans, bookings, packages, orders, pendingOrders, loading, toast, availableCredits, activeBookings, pastBookings, waitlistedClassIds, attendance, loadSchedule, loadPurchasePlans, loadUserData, bookClass, joinWaitlist, cancelBooking, checkInBooking, markAttendance, submitPurchase, createClass, createRecurringClasses, approveOrder, sharePackage, notify, clearToast }
+  return { classes, plans, bookings, packages, orders, pendingOrders, loading, toast, availableCredits, activeBookings, pastBookings, waitlistedClassIds, attendance, loadSchedule, loadPurchasePlans, loadUserData, bookClass, joinWaitlist, cancelBooking, checkInBooking, markAttendance, submitPurchase, createClass, updateClass, createRecurringClasses, approveOrder, sharePackage, notify, clearToast }
 })
