@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { CalendarDays, ClipboardCheck, Leaf, ShieldCheck, ShoppingBag, UserRound } from 'lucide-vue-next'
+import { CalendarDays, ClipboardCheck, Leaf, ShieldCheck, ShoppingBag, UserRound, WalletCards } from 'lucide-vue-next'
 import { useAuthStore } from './stores/authStore'
 
 const route = useRoute()
@@ -11,6 +11,7 @@ const navItems = [
   { to: '/', label: '課表', icon: CalendarDays },
   { to: '/my-bookings', label: '我的預約', icon: UserRound },
   { to: '/store', label: '購課', icon: ShoppingBag },
+  { to: '/my-passes', label: '我的票券', icon: WalletCards },
   { to: '/check-in', label: '簽到', icon: ClipboardCheck },
   { to: '/admin', label: '管理', icon: ShieldCheck },
 ]

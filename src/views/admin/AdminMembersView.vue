@@ -13,6 +13,7 @@ const demoProfiles = ref<Profile[]>([
 ])
 const editing = ref<Profile | null>(null)
 const showTeacherForm = ref(false)
+const creatingTeacher = ref(false)
 const teacherForm = ref({ full_name: '', email: '', phone: '', password: '' })
 
 async function loadProfiles() {
@@ -39,13 +40,27 @@ async function save() {
   store.notify('會員權限與資料已更新。')
 }
 async function createTeacher() {
-  if (!supabase) return
-  const { data, error } = await supabase.functions.invoke('create-instructor', { body: teacherForm.value })
-  if (error || data?.error) { store.notify(error?.message ?? data?.error ?? '建立老師失敗。', 'error'); return }
-  store.notify('老師帳號已建立，可以在新增課程時選擇。')
-  teacherForm.value = { full_name: '', email: '', phone: '', password: '' }
-  showTeacherForm.value = false
-  await loadProfiles()
+  if (!supabase) { store.notify('Supabase 尚未設定，無法建立老師帳號。', 'error'); return }
+  if (!teacherForm.value.full_name.trim() || !teacherForm.value.email.trim() || !teacherForm.value.phone.trim() || teacherForm.value.password.length < 6) {
+    store.notify('請完整填寫姓名、Email、電話，密碼至少 6 碼。', 'error')
+    return
+  }
+  creatingTeacher.value = true
+  try {
+    const { data, error } = await supabase.functions.invoke('create-instructor', { body: teacherForm.value })
+    if (error || data?.error) {
+      store.notify(data?.error ?? error?.message ?? '建立老師失敗，請確認 Edge Function 已部署。', 'error')
+      return
+    }
+    store.notify('老師帳號已建立，可以在新增課程時選擇。')
+    teacherForm.value = { full_name: '', email: '', phone: '', password: '' }
+    showTeacherForm.value = false
+    await loadProfiles()
+  } catch (error) {
+    store.notify(error instanceof Error ? error.message : '建立老師失敗，請稍後再試。', 'error')
+  } finally {
+    creatingTeacher.value = false
+  }
 }
 onMounted(() => void loadProfiles())
 </script>
@@ -57,5 +72,5 @@ onMounted(() => void loadProfiles())
     <div v-if="editing" class="fixed inset-0 z-30 flex items-end justify-center bg-ink/30 p-4 sm:items-center"><section class="w-full max-w-[398px] rounded-[28px] bg-cream p-5 shadow-xl"><h2 class="mb-4 font-display text-xl">編輯會員權限</h2><div class="space-y-3"><input v-model="editing.full_name" placeholder="姓名" class="w-full rounded-xl border border-sand bg-white px-3 py-2.5 text-sm" /><input v-model="editing.phone" placeholder="電話" class="w-full rounded-xl border border-sand bg-white px-3 py-2.5 text-sm" /><input v-model="editing.birth_date" type="date" class="w-full rounded-xl border border-sand bg-white px-3 py-2.5 text-sm" /><input v-model="editing.line_user_id" placeholder="LINE ID" class="w-full rounded-xl border border-sand bg-white px-3 py-2.5 text-sm" /><label class="block text-xs text-stone-500">會員角色<select v-model="editing.role" class="mt-1 w-full rounded-xl border border-sand bg-white px-3 py-2.5 text-sm"><option value="member">member 學員</option><option value="admin">admin 管理員</option><option value="instructor">instructor 老師</option></select></label><label class="flex items-center gap-2 rounded-xl bg-white p-3 text-sm"><input v-model="editing.is_instructor" type="checkbox" /> 同時具備老師權限</label><label class="flex items-center gap-2 rounded-xl bg-white p-3 text-sm"><input v-model="editing.is_active" type="checkbox" /> 帳號啟用</label></div><div class="mt-5 flex gap-2"><button class="flex-1 rounded-xl border border-sand py-3 text-sm" @click="editing = null">取消</button><button class="flex-1 rounded-xl bg-sage py-3 text-sm font-semibold text-white" @click="save"><Save :size="15" class="mr-1 inline" />儲存</button></div></section></div>
     <div v-if="store.toast" class="fixed left-1/2 top-5 z-40 w-[calc(100%-2rem)] max-w-[398px] -translate-x-1/2 rounded-2xl bg-ink px-4 py-3 text-sm text-white shadow-lg">{{ store.toast.message }}</div>
   </div>
-  <div v-if="showTeacherForm" class="fixed inset-0 z-40 flex items-end justify-center bg-ink/30 p-4 sm:items-center"><section class="w-full max-w-[398px] rounded-[28px] bg-cream p-5 shadow-xl"><h2 class="mb-4 font-display text-xl">新增老師帳號</h2><div class="space-y-3"><input v-model="teacherForm.full_name" placeholder="老師姓名" class="w-full rounded-xl border border-sand bg-white px-3 py-2.5 text-sm" /><input v-model="teacherForm.email" type="email" placeholder="Email" class="w-full rounded-xl border border-sand bg-white px-3 py-2.5 text-sm" /><input v-model="teacherForm.phone" placeholder="電話" class="w-full rounded-xl border border-sand bg-white px-3 py-2.5 text-sm" /><input v-model="teacherForm.password" type="password" minlength="6" placeholder="初始密碼（至少 6 碼）" class="w-full rounded-xl border border-sand bg-white px-3 py-2.5 text-sm" /></div><p class="mt-3 text-[11px] text-stone-500">建立後老師可直接使用 Email 與初始密碼登入。</p><div class="mt-5 flex gap-2"><button class="flex-1 rounded-xl border border-sand py-3 text-sm" @click="showTeacherForm = false">取消</button><button class="flex-1 rounded-xl bg-sage py-3 text-sm font-semibold text-white" @click="createTeacher">建立老師</button></div></section></div>
+  <div v-if="showTeacherForm" class="fixed inset-0 z-40 flex items-end justify-center bg-ink/30 p-4 sm:items-center"><section class="w-full max-w-[398px] rounded-[28px] bg-cream p-5 shadow-xl"><h2 class="mb-4 font-display text-xl">新增老師帳號</h2><div class="space-y-3"><input v-model="teacherForm.full_name" placeholder="老師姓名" class="w-full rounded-xl border border-sand bg-white px-3 py-2.5 text-sm" /><input v-model="teacherForm.email" type="email" placeholder="Email" class="w-full rounded-xl border border-sand bg-white px-3 py-2.5 text-sm" /><input v-model="teacherForm.phone" placeholder="電話" class="w-full rounded-xl border border-sand bg-white px-3 py-2.5 text-sm" /><input v-model="teacherForm.password" type="password" minlength="6" placeholder="初始密碼（至少 6 碼）" class="w-full rounded-xl border border-sand bg-white px-3 py-2.5 text-sm" /></div><p class="mt-3 text-[11px] text-stone-500">建立後老師可直接使用 Email 與初始密碼登入。若仍無法建立，請確認 Supabase 已設定 SERVICE_ROLE_KEY 並重新部署 Edge Function。</p><div class="mt-5 flex gap-2"><button class="flex-1 rounded-xl border border-sand py-3 text-sm" @click="showTeacherForm = false">取消</button><button class="flex-1 rounded-xl bg-sage py-3 text-sm font-semibold text-white disabled:opacity-50" :disabled="creatingTeacher" @click="createTeacher">{{ creatingTeacher ? '建立中…' : '建立老師' }}</button></div></section></div>
 </template>
