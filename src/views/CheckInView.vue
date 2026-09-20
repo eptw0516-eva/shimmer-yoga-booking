@@ -45,14 +45,15 @@ function markStudent(bookingId: string, status: AttendanceRecord['status']) {
   store.markAttendance(bookingId, status)
 }
 
-function parseToken(value: string): string | null {
+function parseToken(value: string): { token: string; classId?: string } | null {
   try {
     const payload = JSON.parse(value) as { studio?: string; action?: string; code?: string; token?: string }
-    if (payload.studio === 'shimmer_yoga' && payload.action === 'checkin') return payload.code ?? payload.token ?? null
+    if (payload.studio === 'shimmer_yoga' && payload.action === 'checkin' && (payload.code ?? payload.token)) return { token: payload.code ?? payload.token ?? '', classId: (payload as { class_id?: string }).class_id }
   } catch {
     try {
       const url = new URL(value)
-      return url.searchParams.get('token')
+      const token = url.searchParams.get('token')
+      return token ? { token, classId: url.searchParams.get('class_id') ?? undefined } : null
     } catch {
       return null
     }
@@ -70,12 +71,12 @@ async function stopScanner() {
 
 async function handleScan(decodedText: string) {
   await stopScanner()
-  const token = parseToken(decodedText)
-  if (!token) {
+  const payload = parseToken(decodedText)
+  if (!payload) {
     scannerError.value = 'QR Code 格式不正確，請掃描櫃檯或白板上的微光簽到 QR Code。'
     return
   }
-  const result = await store.checkInBooking(token)
+  const result = await store.checkInBooking(payload.token, payload.classId)
   if (result) {
     success.value = { title: result.class.title, instructor: result.class.instructor_name }
     window.setTimeout(() => router.push('/'), 3000)

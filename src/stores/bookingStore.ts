@@ -273,12 +273,12 @@ export const useBookingStore = defineStore('booking', () => {
     notify(late ? '已通知老師請假，本堂點數依規章扣除。' : '預約已取消，堂數已退回。')
     return true
   }
-  async function checkInBooking(token: string): Promise<CheckInResult | null> {
+  async function checkInBooking(token: string, classId?: string): Promise<CheckInResult | null> {
     const auth = useAuthStore()
     if (!auth.isAuthenticated) { notify('請先登入後再簽到。', 'error'); return null }
     const validToken = token === 'SHIMMER_CHECKIN_SECRET'
     if (!validToken) { notify('QR Code 不符合微光空中瑜珈簽到規格。', 'error'); return null }
-    const booking = bookings.value.find((item) => item.status === 'confirmed' && item.class)
+    const booking = bookings.value.find((item) => item.status === 'confirmed' && item.class && (!classId || item.class_id === classId))
     if (!booking?.class) { notify('找不到今日有效預約。', 'error'); return null }
     const start = new Date(booking.class.start_time).getTime()
     const end = new Date(booking.class.end_time).getTime()
@@ -287,7 +287,9 @@ export const useBookingStore = defineStore('booking', () => {
       return null
     }
     if (supabase) {
-      const { data, error } = await supabase.rpc('checkin_class', { p_booking_id: booking.id, p_token: token } as never) as unknown as { data: Booking | null; error: { message: string } | null }
+      const rpc = classId ? 'checkin_class_for_course' : 'checkin_class'
+      const args = classId ? { p_booking_id: booking.id, p_class_id: classId, p_token: token } : { p_booking_id: booking.id, p_token: token }
+      const { data, error } = await supabase.rpc(rpc, args as never) as unknown as { data: Booking | null; error: { message: string } | null }
       if (error || !data) { notify(error?.message ?? '簽到失敗。', 'error'); return null }
       booking.status = 'attended'
       booking.checked_in_at = new Date().toISOString()
