@@ -98,7 +98,10 @@ export const useAuthStore = defineStore('auth', () => {
       result = await supabase.auth.signUp({
         email: payload.email.trim(),
         password: payload.password,
-        options: { data: { full_name: payload.fullName.trim(), birth_date: payload.birthDate, phone: payload.phone.trim(), line_user_id: payload.lineUserId.trim() } },
+        options: {
+          emailRedirectTo: `${appUrl}/login`,
+          data: { full_name: payload.fullName.trim(), birth_date: payload.birthDate, phone: payload.phone.trim(), line_user_id: payload.lineUserId.trim() },
+        },
       })
     } catch {
       loading.value = false

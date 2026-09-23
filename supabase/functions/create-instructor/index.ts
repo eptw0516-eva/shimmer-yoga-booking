@@ -14,13 +14,20 @@ Deno.serve(async (request) => {
     const { data: { user } } = await client.auth.getUser()
     if (!user) throw new Error('未登入')
     const { data: actor } = await client.from('profiles').select('role,is_active').eq('id', user.id).single()
-    if (actor?.role !== 'admin' || !actor.is_active) throw new Error('只有啟用中的管理員可以建立老師')
+    if (actor?.role !== 'admin' || !actor.is_active) throw new Error('只有啟用中的管理員可以新增帳號')
     const payload = await request.json()
-    if (!payload.email || !payload.password || !payload.full_name || !payload.phone) throw new Error('請完整填寫老師資料')
-    if (payload.password.length < 6) throw new Error('初始密碼至少需要 6 碼')
     const serviceRoleKey = Deno.env.get('SERVICE_ROLE_KEY')
     if (!serviceRoleKey) throw new Error('Supabase Function 尚未設定 SERVICE_ROLE_KEY')
     const admin = createClient(Deno.env.get('SUPABASE_URL')!, serviceRoleKey)
+    if (payload.action === 'reset-password') {
+      if (!payload.user_id || typeof payload.password !== 'string' || payload.password.length < 6) throw new Error('請提供至少 6 碼的新密碼')
+      const { error: resetError } = await admin.auth.admin.updateUserById(payload.user_id, { password: payload.password })
+      if (resetError) throw resetError
+      return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...cors, 'Content-Type': 'application/json' } })
+    }
+    if (!payload.email || !payload.password || !payload.full_name || !payload.phone) throw new Error('請完整填寫帳號資料')
+    if (payload.password.length < 6) throw new Error('初始密碼至少需要 6 碼')
+    const role = payload.role === 'instructor' ? 'instructor' : 'member'
     const email = payload.email.trim().toLowerCase()
     let teacherId: string
     let createdNewUser = false
@@ -37,7 +44,7 @@ Deno.serve(async (request) => {
     } else {
       throw error ?? new Error('建立老師帳號失敗')
     }
-    const { error: profileError } = await admin.from('profiles').upsert({ id: teacherId, email, full_name: payload.full_name.trim(), phone: payload.phone.trim(), role: 'instructor', is_instructor: true, is_active: payload.is_active !== false })
+    const { error: profileError } = await admin.from('profiles').upsert({ id: teacherId, email, full_name: payload.full_name.trim(), phone: payload.phone.trim(), role, is_instructor: role === 'instructor', is_active: payload.is_active !== false })
     if (profileError) {
       if (createdNewUser) await admin.auth.admin.deleteUser(teacherId)
       throw profileError

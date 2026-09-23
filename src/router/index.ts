@@ -17,7 +17,6 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/login', component: AuthView, meta: { title: '會員登入' } },
-    { path: '/register', component: AuthView, meta: { title: '會員註冊' } },
     { path: '/', component: ScheduleView, meta: { title: '預約課表', public: true } },
     { path: '/my-passes', component: MyPassesView, meta: { title: '我的旅程', requiresAuth: true } },
     { path: '/my-bookings', component: MyBookingsView, meta: { title: '我的預約', requiresAuth: true } },
@@ -35,7 +34,8 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
   if (!auth.initialized) await auth.load()
-  if (to.path === '/login' || to.path === '/register') return auth.isAuthenticated && to.query.reset !== '1' ? '/' : true
+  if (to.path === '/register') return '/login'
+  if (to.path === '/login') return auth.isAuthenticated && to.query.reset !== '1' ? '/' : true
   if (to.meta.requiresAuth && !auth.isAuthenticated) return `/login?redirect=${encodeURIComponent(to.fullPath)}`
   if (to.meta.adminOnly && !auth.isAdmin) return '/'
   if (to.meta.staff && !auth.isInstructor) return '/'
