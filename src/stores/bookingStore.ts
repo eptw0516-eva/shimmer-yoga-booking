@@ -182,6 +182,11 @@ export const useBookingStore = defineStore('booking', () => {
     return true
   }
   async function createRecurringClasses(input: Omit<YogaClass, 'id' | 'booked_count'>, weekday: number, startDate: string, endDate: string) {
+    const durationMs = new Date(input.end_time).getTime() - new Date(input.start_time).getTime()
+    if (!Number.isFinite(durationMs) || durationMs <= 0) {
+      notify('課程時間長度必須大於 0。', 'error')
+      return false
+    }
     const first = new Date(`${startDate}T00:00:00Z`)
     const last = new Date(`${endDate}T00:00:00Z`)
     if (Number.isNaN(first.getTime()) || Number.isNaN(last.getTime()) || first > last) {
@@ -199,7 +204,7 @@ export const useBookingStore = defineStore('booking', () => {
     for (const date of dates) {
       const dateValue = date.toISOString().slice(0, 10)
       const start = taiwanDateAndTimeToIso(dateValue, formatTaiwanTime(input.start_time))
-      const end = taiwanDateAndTimeToIso(dateValue, formatTaiwanTime(input.end_time))
+      const end = new Date(new Date(start).getTime() + durationMs).toISOString()
       const success = await createClass({ ...input, start_time: start, end_time: end })
       if (!success) { loading.value = false; return false }
     }
